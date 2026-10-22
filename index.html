@@ -1,0 +1,1333 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0e1416">
+<meta name="color-scheme" content="dark light">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Audio Studio">
+<meta name="description" content="Audio Studio — registratore audio in stile Material Design, per desktop e mobile.">
+<title>Audio Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,100..1000&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+/* ---------- Design tokens: Material Design 3 (seed ciano-acqua) ---------- */
+:root{--sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px);
+  --ease:cubic-bezier(.2,0,0,1);--ease-dec:cubic-bezier(.05,.7,.1,1);--ease-spring:cubic-bezier(.34,1.56,.64,1)}
+html{height:100%;color-scheme:dark}
+body[data-theme=light]{color-scheme:light}
+body[data-theme=dark]{
+  --surface:#0e1416;--on-surface:#dfe4e6;--on-surface-var:#bfc8ca;
+  --container-low:#161c1e;--container:#1a2123;--container-high:#242b2d;--container-highest:#2f3638;
+  --primary:#8bd8e8;--on-primary:#003641;--primary-container:#004e5b;--on-primary-container:#aeeaf9;
+  --secondary:#b4c9cd;--secondary-container:#3f5054;--on-secondary-container:#d5e9ec;
+  --outline:#899396;--outline-var:#3f484b;
+  --error:#ffb4ab;--on-error:#690005;--error-container:#93000a;--on-error-container:#ffdad6;
+  --tertiary:#ffb870;--on-tertiary:#452b00;--tertiary-container:#5c4200;--on-tertiary-container:#ffdcc2;
+  --ok:#97d893;--ok-container:#115123;--on-ok-container:#b8f1b4;
+  --inv-surface:#2b3234;--inv-on-surface:#ecf2f3;--scrim:rgba(0,0,0,.55);
+  --shadow:0 12px 36px rgba(0,0,0,.5);
+  --orb-a:.62;--wire-o:.42;--ring-o:.45}
+body[data-theme=light]{
+  --surface:#f5fafb;--on-surface:#171d1f;--on-surface-var:#3f484b;
+  --container-low:#eff5f6;--container:#e9eff0;--container-high:#e3eaeb;--container-highest:#dde4e5;
+  --primary:#00697c;--on-primary:#ffffff;--primary-container:#b1ecff;--on-primary-container:#001f28;
+  --secondary:#4b636a;--secondary-container:#cfe8ec;--on-secondary-container:#072028;
+  --outline:#6f797c;--outline-var:#bec8cb;
+  --error:#ba1a1a;--on-error:#ffffff;--error-container:#ffdad6;--on-error-container:#410002;
+  --tertiary:#7a5900;--on-tertiary:#ffffff;--tertiary-container:#ffdfae;--on-tertiary-container:#261a00;
+  --ok:#1f6d33;--ok-container:#a9f2ab;--on-ok-container:#00210a;
+  --inv-surface:#2b3234;--inv-on-surface:#ecf2f3;--scrim:rgba(0,0,0,.35);
+  --shadow:0 12px 34px rgba(23,29,31,.22);
+  --orb-a:.8;--wire-o:.55;--ring-o:.3}
+body{--sc:var(--primary)}
+body[data-s=rec]{--sc:var(--error)}
+body[data-s=pause]{--sc:var(--tertiary)}
+body[data-s=done]{--sc:var(--ok)}
+
+/* ---------- Base ---------- */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
+html,body{height:100%;margin:0}
+body{overflow:hidden;overscroll-behavior:none;background:var(--surface);color:var(--on-surface);
+  font:400 15px/1.45 'Roboto Flex',Roboto,'Noto Sans',system-ui,sans-serif;font-optical-sizing:auto;
+  -webkit-user-select:none;user-select:none;touch-action:manipulation}
+::-webkit-scrollbar{width:0;height:0}
+:focus{outline:none}
+:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:6px}
+button,select,input{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer;padding:0}
+a{color:inherit;text-decoration:none}
+
+/* Icone Material Symbols */
+.ms{font-family:'Material Symbols Rounded';font-weight:normal;font-style:normal;font-size:24px;line-height:1;
+  letter-spacing:normal;text-transform:none;display:inline-block;white-space:nowrap;word-wrap:normal;direction:ltr;
+  font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;-webkit-font-smoothing:antialiased;user-select:none;flex:none}
+.ms.fill{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24}
+
+/* ---------- Palco: full-bleed su mobile, finestra app su desktop ---------- */
+.stage{position:relative;width:100%;max-width:640px;height:100dvh;margin:0 auto;overflow:hidden;background:var(--surface)}
+body[data-theme=dark] .stage{background:radial-gradient(130% 58% at 50% 28%,color-mix(in srgb,var(--primary-container) 34%,var(--surface)) 0%,var(--surface) 70%)}
+body[data-theme=light] .stage{background:radial-gradient(130% 58% at 50% 28%,color-mix(in srgb,var(--primary-container) 40%,var(--surface)) 0%,var(--surface) 72%)}
+canvas{position:absolute;inset:0;width:100%;height:100%}
+#hud{pointer-events:none}
+#gl{pointer-events:none}
+
+@media (min-width:880px) and (min-height:700px){
+  body{display:grid;place-items:center;
+    background:radial-gradient(56% 48% at 18% 10%,color-mix(in srgb,var(--primary) 13%,transparent),transparent 62%),
+      radial-gradient(50% 44% at 84% 88%,color-mix(in srgb,var(--error) 9%,transparent),transparent 60%),
+      color-mix(in srgb,var(--surface) 86%,#000)}
+  body[data-theme=light]{background:radial-gradient(56% 48% at 18% 10%,color-mix(in srgb,var(--primary) 12%,transparent),transparent 62%),
+      radial-gradient(50% 44% at 84% 88%,color-mix(in srgb,var(--tertiary) 10%,transparent),transparent 60%),
+      color-mix(in srgb,var(--surface) 92%,var(--primary))}
+  .stage{width:430px;height:min(860px,94vh);border-radius:36px;border:1px solid var(--outline-var);
+    box-shadow:0 44px 90px rgba(0,0,0,.5),0 6px 20px rgba(0,0,0,.28)}
+  body[data-theme=light] .stage{box-shadow:0 44px 90px rgba(23,29,31,.24),0 6px 20px rgba(23,29,31,.12)}
+}
+
+/* ---------- Ripple ---------- */
+.rip{position:absolute;border-radius:50%;background:currentColor;opacity:.14;transform:scale(0);
+  animation:rip .55s var(--ease-dec) forwards;pointer-events:none}
+@keyframes rip{to{transform:scale(1);opacity:0}}
+
+/* ---------- Top app bar ---------- */
+.appbar{position:absolute;top:0;left:0;right:0;height:calc(var(--sat) + 64px);
+  padding:calc(var(--sat) + 8px) 10px 0;display:flex;align-items:center;gap:8px;z-index:6}
+.brand{display:flex;align-items:center;gap:11px;flex:1;min-width:0}
+.logo{width:32px;height:32px;border-radius:10px;background:var(--primary-container);color:var(--on-primary-container);
+  display:grid;place-items:center;font-size:19px}
+.brand h1{margin:0;font-size:20px;font-weight:600;letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip{position:relative;overflow:hidden;display:flex;align-items:center;gap:8px;height:32px;padding:0 12px;border-radius:8px;
+  border:1px solid color-mix(in srgb,var(--sc) 42%,var(--outline-var));background:color-mix(in srgb,var(--sc) 11%,transparent);
+  color:var(--sc);font-size:13px;font-weight:500;letter-spacing:.1px;transition:background .4s,color .4s,border-color .4s;white-space:nowrap}
+.chip i{width:8px;height:8px;border-radius:50%;background:var(--sc);transition:background .4s}
+body[data-s=rec] .chip i{animation:bl 1s infinite}
+@keyframes bl{50%{opacity:.25}}
+
+/* ---------- Icon button ---------- */
+.ibtn{position:relative;overflow:hidden;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;
+  color:var(--on-surface-var);transition:color .2s,transform .12s var(--ease)}
+.ibtn:active{transform:scale(.88)}
+.ibtn:disabled{opacity:.28;pointer-events:none}
+.ibtn:not(:disabled):hover{color:var(--on-surface)}
+.ibtn .ms{font-size:22px}
+
+/* ---------- Sorgente + livello ---------- */
+.srcshelf{position:absolute;left:16px;right:16px;top:calc(var(--sat) + 70px);display:flex;flex-direction:column;gap:10px;z-index:5}
+.field{position:relative;display:flex;align-items:center}
+.field select{appearance:none;-webkit-appearance:none;width:100%;height:48px;padding:0 44px 0 16px;border-radius:14px;
+  border:1px solid var(--outline);background:transparent;color:var(--on-surface);font-size:15px;text-overflow:ellipsis;cursor:pointer}
+.field select:focus-visible{outline:2px solid var(--primary);outline-offset:1px}
+.field .trail{position:absolute;right:12px;pointer-events:none;color:var(--on-surface-var);font-size:22px}
+option{background:var(--container-high);color:var(--on-surface)}
+.lvl{display:flex;align-items:center;gap:10px}
+.meter{flex:1;height:8px;border-radius:4px;background:var(--container-highest);overflow:hidden}
+.meter i{display:block;height:100%;width:0;border-radius:4px;background:var(--sc);transition:background .4s}
+#dbValue{font-size:13px;font-weight:500;font-feature-settings:'tnum';color:var(--on-surface-var);width:60px;text-align:right;flex:none}
+
+/* ---------- Sorgenti multiple ---------- */
+.chip:disabled{opacity:.4;pointer-events:none}
+.srcchips{display:flex;align-items:center;gap:8px;margin-top:2px}
+.chip.src{height:30px;padding:0 10px;font-size:12.5px;gap:6px}
+.chip.src .ms{font-size:16px}
+.chip.src[aria-pressed=false]{color:var(--on-surface-var);border-color:var(--outline-var);background:transparent}
+.chip.src.on{color:var(--primary);border-color:color-mix(in srgb,var(--primary) 55%,var(--outline-var));background:color-mix(in srgb,var(--primary) 12%,transparent)}
+.src-est{margin-left:auto;font-size:11.5px;font-feature-settings:'tnum';color:var(--on-surface-var);white-space:nowrap}
+
+/* ---------- Preset, hint, video nascosto ---------- */
+.lab.top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.ptag{font-size:11px;font-weight:600;letter-spacing:.2px;color:var(--primary);background:color-mix(in srgb,var(--primary) 13%,transparent);
+  border:1px solid color-mix(in srgb,var(--primary) 42%,var(--outline-var));padding:2px 8px;border-radius:8px;white-space:nowrap}
+.hint{margin:6px 0 0;font-size:12px;line-height:1.4;color:var(--on-surface-var)}
+.hint b{color:var(--primary);font-feature-settings:'tnum'}
+#deskVideo{position:absolute;left:-9999px;top:0;width:2px;height:2px;opacity:0;pointer-events:none}
+
+/* ---------- Timer ---------- */
+#clock{position:absolute;left:0;right:0;text-align:center;pointer-events:none;z-index:2}
+#timerDisplay{font-size:clamp(48px,13.5vw,76px);font-weight:620;line-height:1;letter-spacing:-1.5px;
+  font-feature-settings:'tnum';font-variation-settings:'opsz' 70;color:var(--on-surface)}
+#timerDisplay small{font-size:.42em;font-weight:500;color:var(--on-surface-var);letter-spacing:0}
+#recordingStateLabel{margin-top:8px;color:var(--sc);font-size:14px;font-weight:500;letter-spacing:.2px;transition:color .4s}
+
+/* ---------- Dock + FAB ---------- */
+.dock{position:absolute;left:50%;bottom:calc(var(--sab) + 16px);transform:translateX(-50%);
+  display:flex;align-items:center;gap:6px;padding:10px 12px;border-radius:40px;background:var(--container);
+  box-shadow:var(--shadow);z-index:10;transition:transform .55s var(--ease)}
+body[data-s=done] .dock{transform:translate(-50%,190%)}
+.fab{position:relative;overflow:hidden;width:84px;height:84px;border-radius:42px;margin:0 4px;
+  display:grid;place-items:center;background:var(--error);color:var(--on-error);
+  transition:transform .15s var(--ease),border-radius .45s var(--ease-spring),background .35s,color .35s}
+.fab:active{transform:scale(.9)}
+body[data-s=rec] .fab{border-radius:28px;animation:pr 1.6s var(--ease) infinite}
+body[data-s=pause] .fab{background:var(--tertiary);color:var(--on-tertiary);border-radius:28px}
+@keyframes pr{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--error) 45%,transparent)}100%{box-shadow:0 0 0 26px transparent}}
+.fab .ms{position:absolute;font-size:30px;opacity:0;transform:scale(.4) rotate(-45deg);transition:.32s var(--ease-spring)}
+body[data-s=idle] .fab .ic-dt,body[data-s=rec] .fab .ic-pa,body[data-s=pause] .fab .ic-pl{opacity:1;transform:none}
+.chip.fmt{cursor:pointer;color:var(--primary);border-color:var(--outline-var);background:transparent;padding:0 14px}
+.chip.fmt .ms{font-size:18px}
+@media (max-width:374px){.dock{gap:2px;padding:8px 8px}.chip.fmt{padding:0 10px}}
+
+/* ---------- Pulsanti M3 ---------- */
+.btn-fill,.btn-out,.btn-ton{position:relative;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;
+  gap:8px;height:48px;padding:0 22px;border-radius:24px;font-size:14px;font-weight:600;letter-spacing:.1px;
+  transition:transform .15s var(--ease),box-shadow .2s;cursor:pointer}
+.btn-fill:active,.btn-out:active,.btn-ton:active{transform:scale(.96)}
+.btn-fill{background:var(--primary);color:var(--on-primary)}
+.btn-out{border:1px solid var(--outline);color:var(--primary);background:transparent}
+.btn-ton{background:var(--secondary-container);color:var(--on-secondary-container)}
+.btn-fill .ms,.btn-out .ms,.btn-ton .ms{font-size:19px}
+.wide{width:100%}
+
+/* ---------- Bottom sheet ---------- */
+#scrim{position:absolute;inset:0;background:var(--scrim);opacity:0;pointer-events:none;transition:opacity .35s;z-index:18}
+#scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;margin:0 auto;max-width:640px;max-height:88%;overflow:auto;
+  padding:0 22px calc(var(--sab) + 20px);background:var(--container-low);border-radius:28px 28px 0 0;
+  transform:translateY(110%);transition:transform .55s var(--ease);z-index:20;visibility:hidden;
+  overscroll-behavior:contain;box-shadow:0 -10px 34px rgba(0,0,0,.28)}
+.sheet.open{transform:none;visibility:visible}
+.grab{height:26px;display:grid;place-items:center;touch-action:none;cursor:grab;margin:0 -22px}
+.grab i{width:36px;height:4px;border-radius:2px;background:var(--outline-var)}
+.sheet h2{margin:6px 0 4px;font-size:22px;font-weight:550;letter-spacing:-.2px}
+p.sub{margin:0 0 16px;color:var(--on-surface-var);font-size:14px}
+.topgap{height:24px}
+
+/* ---------- Statistiche ---------- */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:8px}
+.stats div{padding:11px 13px;border-radius:14px;background:var(--container)}
+.stats span{display:block;color:var(--on-surface-var);font-size:11.5px;margin-bottom:2px}
+.stats b{font-weight:600;font-size:13.5px;font-feature-settings:'tnum';color:var(--on-surface)}
+.acts{display:flex;gap:10px;margin-top:16px}
+.acts>*{flex:1}
+.acts .ms{font-size:18px}
+
+/* ---------- File pronto ---------- */
+.file{display:flex;align-items:center;gap:13px;margin:4px 0 2px}
+.ficon{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;background:var(--ok-container);
+  color:var(--on-ok-container);font-size:23px;flex:none}
+.file h2{font-size:15.5px;word-break:break-all;margin:0}
+.file small{display:block;font-size:12px;font-feature-settings:'tnum';color:var(--on-surface-var);margin-top:2px}
+audio{width:100%;height:46px;margin:14px 0 2px}
+
+/* ---------- Libreria locale ---------- */
+.ibtn .dot{position:absolute;top:10px;right:11px;width:8px;height:8px;border-radius:50%;background:var(--primary);box-shadow:0 0 0 2px var(--surface)}
+.libbar{display:flex;align-items:center;gap:10px;padding:10px 13px;border-radius:12px;background:var(--container);
+  font-size:12px;color:var(--on-surface-var);margin-bottom:14px;font-feature-settings:'tnum'}
+.libbar b{color:var(--primary);font-weight:600}
+.libbar .ms{margin-left:auto;font-size:16px;color:var(--outline)}
+.liblist{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
+.empty{padding:26px 18px;text-align:center;border:1px dashed var(--outline-var);border-radius:16px;
+  color:var(--on-surface-var);font-size:13px;line-height:1.5}
+.empty .ms{display:block;margin:0 auto 10px;font-size:30px;color:var(--outline)}
+.rec{border:1px solid var(--outline-var);border-radius:16px;background:var(--container);overflow:hidden;transition:border-color .25s}
+.rec.on{border-color:color-mix(in srgb,var(--primary) 45%,var(--outline-var))}
+.rec-h{position:relative;overflow:hidden;display:flex;align-items:center;gap:12px;width:100%;padding:11px 12px;text-align:left}
+.rec-h .ficon{width:40px;height:40px;border-radius:12px;font-size:20px;background:var(--primary-container);color:var(--on-primary-container)}
+.rec-h div{flex:1;min-width:0}
+.rec-h b{display:block;font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rec-h small{display:block;margin-top:2px;font-size:11.5px;color:var(--on-surface-var);font-feature-settings:'tnum';
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rec-h .chev{color:var(--on-surface-var);transition:transform .3s var(--ease)}
+.rec.on .chev{transform:rotate(180deg)}
+.rec-b{display:none;padding:0 12px 12px;border-top:1px solid var(--outline-var)}
+.rec.on .rec-b{display:block}
+.rec-b audio{height:42px;margin:12px 0 0}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:11px}
+.mini{height:36px;padding:0 13px;font-size:12.5px;border-radius:18px;gap:6px}
+.mini .ms{font-size:16px}
+.exp{position:relative;overflow:hidden;display:flex;align-items:center;gap:10px;width:100%;padding:9px 11px;
+  border-radius:12px;background:var(--surface);margin-top:8px;text-align:left}
+.exp>.ms:first-child{font-size:18px;color:var(--primary)}
+.exp div{flex:1;min-width:0}
+.exp b{display:block;font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.exp small{display:block;font-size:11px;color:var(--on-surface-var);font-feature-settings:'tnum'}
+.exp>.ms:last-child{font-size:17px;color:var(--on-surface-var)}
+.prog{height:8px;border-radius:4px;background:var(--container-highest);overflow:hidden;margin:14px 0 0}
+.prog i{display:block;height:100%;width:0;border-radius:4px;background:var(--primary);transition:width .18s linear}
+/* appbar compatta su schermi stretti */
+@media (max-width:420px){.appbar{gap:6px;padding-left:8px;padding-right:8px}.brand{gap:8px}.brand h1{font-size:16px;letter-spacing:-.3px}.chip{font-size:11px;padding:0 9px;gap:6px}.chip i{width:7px;height:7px}}
+
+/* ---------- Impostazioni ---------- */
+.set{margin:0 0 20px}
+.lab{display:block;margin-bottom:10px;color:var(--on-surface-var);font-size:13px;font-weight:500}
+.row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;color:var(--on-surface-var);font-size:13.5px}
+.row b{font-weight:600;font-feature-settings:'tnum';color:var(--primary)}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fb{position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:flex-start;gap:1px;
+  padding:13px 14px;border-radius:16px;border:1px solid var(--outline-var);background:var(--container);
+  color:var(--on-surface-var);text-align:left;transition:border-color .25s,background .25s}
+.fb b{font-size:15px;font-weight:600;color:var(--on-surface);letter-spacing:.2px}
+.fb small{font-size:12px}
+.fb .ck{position:absolute;top:9px;right:9px;font-size:18px;color:var(--primary);opacity:0;transform:scale(.6);transition:.25s var(--ease-spring)}
+.fb.on{border-color:var(--primary);background:color-mix(in srgb,var(--primary) 11%,var(--surface))}
+.fb.on .ck{opacity:1;transform:none}
+.seg{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--outline);border-radius:22px;overflow:hidden}
+.seg label{position:relative;display:flex}
+.seg input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer}
+.seg span{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;min-height:44px;font-size:14px;
+  font-weight:500;color:var(--on-surface-var);border-left:1px solid var(--outline);cursor:pointer;transition:background .25s,color .25s;position:relative;overflow:hidden}
+.seg label:first-child span{border-left:0}
+.seg input:checked+span{background:var(--secondary-container);color:var(--on-secondary-container)}
+.seg input:checked+span::before{content:"check";font-family:'Material Symbols Rounded';font-size:16px;
+  font-variation-settings:'FILL' 0,'wght' 500,'opsz' 20}
+.seg.plain input:checked+span::before{content:none}
+.seg input:focus-visible+span{outline:2px solid var(--primary);outline-offset:-2px}
+.seg .ms{font-size:17px}
+.tg{position:relative;overflow:hidden;display:flex;justify-content:space-between;align-items:center;gap:14px;
+  min-height:54px;border-top:1px solid var(--outline-var);font-size:14.5px;cursor:pointer}
+.sw{appearance:none;-webkit-appearance:none;flex:none;width:52px;height:32px;border-radius:16px;
+  background:var(--container-highest);border:2px solid var(--outline);position:relative;transition:.25s;cursor:pointer;margin:0}
+.sw::after{content:"";position:absolute;top:50%;left:5px;translate:0 -50%;width:16px;height:16px;border-radius:50%;
+  background:var(--outline);transition:.25s var(--ease-spring)}
+.sw:checked{background:var(--primary);border-color:var(--primary)}
+.sw:checked::after{left:21px;width:24px;height:24px;background:var(--on-primary)}
+
+/* ---------- Slider M3 ---------- */
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:44px;background:transparent;margin:6px 0 0;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:16px;border-radius:8px;
+  background:linear-gradient(90deg,var(--primary) var(--p,50%),var(--container-highest) var(--p,50%))}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:5px;height:44px;margin-top:-14px;border-radius:3px;
+  background:var(--primary);box-shadow:0 0 0 7px var(--container-low)}
+input[type=range]::-moz-range-track{height:16px;border-radius:8px;
+  background:linear-gradient(90deg,var(--primary) var(--p,50%),var(--container-highest) var(--p,50%))}
+input[type=range]::-moz-range-thumb{width:5px;height:44px;border:0;border-radius:3px;
+  background:var(--primary);box-shadow:0 0 0 7px var(--container-low)}
+
+/* ---------- Snackbar ---------- */
+#toast{position:absolute;left:50%;bottom:calc(var(--sab) + 122px);transform:translate(-50%,14px);display:flex;
+  align-items:center;gap:10px;min-height:46px;max-width:calc(100% - 32px);padding:11px 18px;border-radius:10px;
+  background:var(--inv-surface);color:var(--inv-on-surface);font-size:14px;box-shadow:var(--shadow);
+  opacity:0;pointer-events:none;transition:.35s var(--ease);z-index:60;text-align:center}
+#toast::before{content:"info";font-family:'Material Symbols Rounded';font-size:18px;font-variation-settings:'FILL' 1,'wght' 400,'opsz' 20}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+#toast[data-t=error]{background:var(--error-container);color:var(--on-error-container)}
+#toast[data-t=error]::before{content:"error"}
+#toast[data-t=success]{background:var(--ok-container);color:var(--on-ok-container)}
+#toast[data-t=success]::before{content:"check_circle"}
+
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition-duration:.01s!important}}
+</style>
+</head>
+<body data-theme="dark" data-s="idle">
+<div class="stage" id="stage">
+  <canvas id="gl"></canvas>
+  <canvas id="hud"></canvas>
+
+  <header class="appbar">
+    <div class="brand">
+      <span class="logo ms fill" aria-hidden="true">graphic_eq</span>
+      <h1>Audio Studio</h1>
+    </div>
+    <div class="chip" aria-live="polite"><i aria-hidden="true"></i><span id="statusText">Pronto</span></div>
+    <button class="ibtn" id="libraryBtn" aria-label="Registrazioni salvate"><span class="ms">library_music</span><i class="dot" id="libDot" hidden></i></button>
+    <button class="ibtn" id="toggleSettingsBtn" aria-label="Impostazioni"><span class="ms">settings</span></button>
+  </header>
+
+  <div class="srcshelf">
+    <div class="field">
+      <select id="audioDeviceSelect" aria-label="Sorgente audio"><option value="">Caricamento microfoni…</option></select>
+      <span class="ms trail" aria-hidden="true">expand_more</span>
+    </div>
+    <div class="lvl">
+      <div class="meter" aria-hidden="true"><i id="levelBar"></i></div>
+      <span id="dbValue">-∞ dB</span>
+    </div>
+    <div class="srcchips">
+      <button class="chip src on" id="micChip" aria-pressed="true" aria-label="Microfono attivo"><span class="ms" aria-hidden="true">mic</span><span>Mic</span></button>
+      <button class="chip src" id="deskChip" aria-pressed="false" aria-label="Audio del desktop disattivato"><span class="ms" aria-hidden="true">volume_off</span><span>Sistema</span></button>
+      <span class="src-est" id="srcEstimate">≈ 0 KB/ora</span>
+    </div>
+  </div>
+
+  <div id="clock">
+    <div id="timerDisplay">00:00<small>.00</small></div>
+    <div id="recordingStateLabel">Pronto per registrare</div>
+  </div>
+
+  <nav class="dock" aria-label="Controlli di registrazione">
+    <button class="ibtn" id="resetBtn" aria-label="Azzera"><span class="ms">restart_alt</span></button>
+    <button class="ibtn" id="pauseBtn" aria-label="Pausa" disabled><span class="ms fill">pause</span></button>
+    <button class="fab" id="recordBtn" aria-label="Registra o metti in pausa">
+      <span class="ms fill ic-dt" aria-hidden="true">fiber_manual_record</span>
+      <span class="ms fill ic-pa" aria-hidden="true">pause</span>
+      <span class="ms fill ic-pl" aria-hidden="true">play_arrow</span>
+    </button>
+    <button class="ibtn" id="stopBtn" aria-label="Ferma" disabled><span class="ms fill">stop</span></button>
+    <button class="chip fmt" id="activeFormatBadge" aria-label="Formato di output, tocca per modificare">
+      <span class="ms" aria-hidden="true">equalizer</span><span id="fmtLabel">WAV</span>
+    </button>
+  </nav>
+
+  <video id="deskVideo" muted playsinline></video>
+
+  <div id="scrim"></div>
+
+  <section class="sheet" id="confirmCard" aria-label="Conferma registrazione">
+    <div class="topgap"></div>
+    <h2>Registrazione completata</h2>
+    <p class="sub">Rivedi i dettagli o genera il file. La registrazione resta salvata in <b>Registrazioni</b>. <span id="capturedDurationBadge">Durata: 00:00</span></p>
+    <div class="stats">
+      <div><span>Formato</span><b id="confirmFormatLabel">WAV</b></div>
+      <div><span>Campionamento</span><b id="confirmSampleLabel">48000 Hz • Stereo</b></div>
+      <div><span>Qualità</span><b id="confirmBitrateLabel">PCM 16 bit</b></div>
+      <div><span>Sorgenti</span><b id="confirmSourcesLabel">Microfono</b></div>
+      <div><span>Peso stimato</span><b id="confirmSizeLabel">—</b></div>
+    </div>
+    <div class="acts">
+      <button class="btn-out" id="openSidebarSettingsBtn"><span class="ms">tune</span>Modifica</button>
+      <button class="btn-fill" id="processExportBtn"><span class="ms">save</span>Genera e salva</button>
+    </div>
+  </section>
+
+  <section class="sheet" id="outputCard" aria-label="File pronto">
+    <div class="topgap"></div>
+    <div class="file">
+      <span class="ficon ms fill" aria-hidden="true">audio_file</span>
+      <div>
+        <h2 id="outputFileName">registrazione.wav</h2>
+        <small><span id="outputFileSize">0.0 MB</span> • <span id="outputFileDuration">00:00</span> • <span id="outputFileMeta">WAV</span> • <span id="outputFileSources">Microfono</span></small>
+      </div>
+    </div>
+    <audio id="audioPlayer" controls></audio>
+    <div class="acts">
+      <button class="btn-ton" id="newBtn"><span class="ms">restart_alt</span>Nuova</button>
+      <button class="btn-ton" id="shareBtn" hidden><span class="ms">share</span>Condividi</button>
+      <a class="btn-fill" id="downloadBtn" download><span class="ms">download</span>Scarica</a>
+    </div>
+    <div class="chips"><button class="btn-out mini" id="outputReBtn"><span class="ms">tune</span>Ricodifica con altre impostazioni</button></div>
+  </section>
+
+  <section class="sheet" id="libraryCard" aria-label="Registrazioni salvate">
+    <div class="grab" aria-hidden="true"><i></i></div>
+    <h2>Registrazioni</h2>
+    <p class="sub">Salvate su questo dispositivo: restano disponibili anche dopo aver chiuso l'app.</p>
+    <div class="libbar"><span id="libStats">—</span><span class="ms" aria-hidden="true">lock</span></div>
+    <div id="libList" class="liblist"></div>
+    <button class="btn-ton wide" id="libCloseBtn"><span class="ms">done_all</span>Chiudi</button>
+  </section>
+
+  <section class="sheet" id="reencodeCard" aria-label="Ricodifica registrazione">
+    <div class="grab" aria-hidden="true"><i></i></div>
+    <h2>Ricodifica</h2>
+    <p class="sub" id="reSub">Il master originale resta intatto: qui crei una nuova versione.</p>
+    <section class="set"><span class="lab top">Preset rapido<span class="ptag">facoltativo</span></span>
+      <div class="fg" id="rePresetGroup">
+        <button class="fb" data-rpreset="ultralight"><b>Ultra leggero</b><small>OPUS · 8 kHz · 8 kbps</small><span class="ms ck fill">check_circle</span></button>
+        <button class="fb" data-rpreset="voice"><b>Voce</b><small>OPUS · 16 kHz · 24 kbps</small><span class="ms ck fill">check_circle</span></button>
+        <button class="fb" data-rpreset="standard"><b>Standard</b><small>M4A · 44.1 kHz · 96 kbps</small><span class="ms ck fill">check_circle</span></button>
+        <button class="fb" data-rpreset="hq"><b>Senza perdite</b><small>WAV · 48 kHz · 16 bit</small><span class="ms ck fill">check_circle</span></button>
+      </div>
+    </section>
+    <section class="set"><span class="lab">Formato</span>
+      <div class="fg" id="reFormatGroup">
+        <button class="fb" data-rf="wav"><b>WAV</b><small>Non compresso</small><span class="ms ck fill">check_circle</span></button>
+        <button class="fb" data-rf="mp3"><b>MP3</b><small>Compatibilità</small><span class="ms ck fill">check_circle</span></button>
+        <button class="fb" data-rf="m4a"><b>M4A / AAC</b><small>Alta qualità</small><span class="ms ck fill">check_circle</span></button>
+        <button class="fb" data-rf="opus"><b>OPUS / WEBM</b><small>Efficienza</small><span class="ms ck fill">check_circle</span></button>
+      </div>
+    </section>
+    <section class="set"><span class="lab">Campionamento</span>
+      <div class="field"><select class="sel" id="reRate" aria-label="Campionamento"></select><span class="ms trail" aria-hidden="true">expand_more</span></div>
+    </section>
+    <section class="set" id="reBitrateSet">
+      <div class="row"><span>Bitrate</span><b id="reBitrateValue">96 kbps</b></div>
+      <input type="range" id="reBitrate" min="6" max="320" step="2" value="96" aria-label="Bitrate">
+      <p class="hint" id="reEstimateHint">Stima: <b>—</b></p>
+    </section>
+    <section class="set" id="reBitsSet" hidden><span class="lab">Profondità WAV</span>
+      <div class="field"><select class="sel" id="reBits" aria-label="Profondità">
+        <option value="8">8 bit — minima</option>
+        <option value="16" selected>16 bit — standard</option>
+        <option value="24">24 bit — alta</option>
+        <option value="32">32 bit float — massima</option>
+      </select><span class="ms trail" aria-hidden="true">expand_more</span></div>
+    </section>
+    <section class="set"><span class="lab">Canali</span>
+      <div class="seg plain" id="reChGroup">
+        <label><input type="radio" name="reChannels" value="1"><span>Mono</span></label>
+        <label><input type="radio" name="reChannels" value="2" checked><span>Stereo</span></label>
+      </div>
+    </section>
+    <section class="set"><label class="tg"><span>Normalizza volume (picco −1 dB)</span><input class="sw" type="checkbox" id="reNormalize"></label></section>
+    <div class="prog" id="reProg" hidden><i id="reProgBar"></i></div>
+    <p class="hint" id="reStatus"></p>
+    <div class="acts">
+      <button class="btn-out" id="reCancelBtn"><span class="ms">close</span>Annulla</button>
+      <button class="btn-fill" id="reGoBtn"><span class="ms">bolt</span>Genera</button>
+    </div>
+  </section>
+
+  <aside class="sheet" id="settingsPanel" aria-label="Impostazioni di registrazione">
+    <div class="grab" aria-hidden="true"><i></i></div>
+    <h2 style="margin-bottom:18px">Impostazioni</h2>
+    <section class="set"><span class="lab top">Preset di qualità<span class="ptag" id="presetTag">Personalizzato</span></span>
+      <div class="fg" id="presetGroup">
+        <button class="fb" data-preset="ultralight"><b>Ultra leggero</b><small>OPUS · 8 kHz · 8 kbps</small><span class="ms ck fill">check_circle</span></button>
+        <button class="fb" data-preset="voice"><b>Voce</b><small>OPUS · 16 kHz · 24 kbps</small><span class="ms ck fill">check_circle</span></button>
+        <button class="fb" data-preset="standard"><b>Standard</b><small>M4A · 44.1 kHz · 96 kbps</small><span class="ms ck fill">check_circle</span></button>
+        <button class="fb" data-preset="hq"><b>Alta qualità</b><small>WAV · 48 kHz · 16 bit</small><span class="ms ck fill">check_circle</span></button>
+      </div>
+    </section>
+    <section class="set"><span class="lab">Formato di output</span>
+      <div class="fg" id="formatSelectorGroup">
+        <button class="fb on" data-format="wav"><b>WAV</b><small>Non compresso</small><span class="ms ck fill">check_circle</span></button>
+        <button class="fb" data-format="mp3"><b>MP3</b><small>Massima compatibilità</small><span class="ms ck fill">check_circle</span></button>
+        <button class="fb" data-format="m4a"><b>M4A / AAC</b><small>Alta qualità</small><span class="ms ck fill">check_circle</span></button>
+        <button class="fb" data-format="opus"><b>OPUS / WEBM</b><small>Alta efficienza</small><span class="ms ck fill">check_circle</span></button>
+      </div>
+    </section>
+    <section class="set"><span class="lab">Frequenza di campionamento</span>
+      <div class="field">
+        <select class="sel" id="sampleRateSelect">
+          <option value="8000">8 kHz — voce, peso minimo</option>
+          <option value="11025">11.025 kHz — voce</option>
+          <option value="12000">12 kHz — voce</option>
+          <option value="16000">16 kHz — riconoscimento vocale</option>
+          <option value="22050">22.05 kHz — radio</option>
+          <option value="24000">24 kHz — buona</option>
+          <option value="32000">32 kHz — alta</option>
+          <option value="44100">44.1 kHz — qualità CD</option>
+          <option value="48000" selected>48 kHz — studio</option>
+          <option value="96000">96 kHz — alta risoluzione</option>
+        </select>
+        <span class="ms trail" aria-hidden="true">expand_more</span>
+      </div>
+      <p class="hint">Il campionamento è imposto al motore audio: vale sia per WAV sia per i formati compressi.</p>
+    </section>
+    <section class="set" id="bitrateContainer" hidden>
+      <div class="row"><span>Bitrate</span><b id="bitrateValueDisplay">192 kbps</b></div>
+      <input type="range" id="bitrateRange" min="64" max="320" step="32" value="192" aria-label="Bitrate">
+      <p class="hint" id="bitrateHint">Stima: <b>—</b></p>
+    </section>
+    <section class="set" id="bitDepthContainer" hidden>
+      <span class="lab">Profondità WAV</span>
+      <div class="field">
+        <select class="sel" id="bitDepthSelect">
+          <option value="8">8 bit — minima, dimezza il peso</option>
+          <option value="16" selected>16 bit — standard</option>
+          <option value="24">24 bit — alta</option>
+          <option value="32">32 bit float — massima</option>
+        </select>
+        <span class="ms trail" aria-hidden="true">expand_more</span>
+      </div>
+      <p class="hint" id="bitDepthHint">Stima: <b>—</b></p>
+    </section>
+    <section class="set"><span class="lab">Canali</span>
+      <div class="seg plain">
+        <label><input type="radio" name="audioChannels" value="1"><span>Mono</span></label>
+        <label><input type="radio" name="audioChannels" value="2" checked><span>Stereo</span></label>
+      </div>
+    </section>
+    <section class="set"><span class="lab">Sorgenti e mixaggio</span>
+      <label class="tg"><span>Microfono</span><input class="sw" type="checkbox" id="micEnabled" checked></label>
+      <label class="tg"><span>Audio del desktop</span><input class="sw" type="checkbox" id="desktopEnabled"></label>
+      <div class="row" style="margin-top:14px"><span>Volume microfono</span><b id="micGainDisplay">100%</b></div>
+      <input type="range" id="micGainRange" min="0" max="200" step="5" value="100" aria-label="Volume del microfono">
+      <div class="row"><span>Volume desktop</span><b id="desktopGainDisplay">100%</b></div>
+      <input type="range" id="desktopGainRange" min="0" max="200" step="5" value="100" aria-label="Volume dell'audio di sistema">
+      <p class="hint" id="desktopHint">Audio di sistema: su Windows scegli «Schermo intero» e spunta «Condividi audio».</p>
+    </section>
+    <section class="set"><span class="lab">Elaborazione del microfono</span>
+      <label class="tg"><span>Cancellazione dell'eco</span><input class="sw" type="checkbox" id="echoCancellation" checked></label>
+      <label class="tg"><span>Riduzione del rumore</span><input class="sw" type="checkbox" id="noiseSuppression" checked></label>
+      <label class="tg"><span>Guadagno automatico</span><input class="sw" type="checkbox" id="autoGainControl"></label>
+    </section>
+    <section class="set"><span class="lab">Visualizzatore</span>
+      <div class="field">
+        <select class="sel" id="visualizerStyle">
+          <option value="bars" selected>Barre — stile Recorder</option>
+          <option value="ring">Anello radiale</option>
+          <option value="wave">Onda</option>
+        </select>
+        <span class="ms trail" aria-hidden="true">expand_more</span>
+      </div>
+    </section>
+    <section class="set"><span class="lab">Tema</span>
+      <div class="seg plain" id="themeSeg">
+        <label><input type="radio" name="appTheme" value="dark" checked><span><span class="ms" aria-hidden="true">dark_mode</span>Scuro</span></label>
+        <label><input type="radio" name="appTheme" value="light"><span><span class="ms" aria-hidden="true">light_mode</span>Chiaro</span></label>
+      </div>
+    </section>
+    <button class="btn-fill wide" id="closeSettingsBtn">Fatto</button>
+  </aside>
+
+  <div id="toast" role="status"><span id="toastMessage"></span></div>
+</div>
+<script>
+const $=i=>document.getElementById(i),B=document.body,TAU=Math.PI*2,stage=$('stage');
+const RM=matchMedia('(prefers-reduced-motion:reduce)').matches,SP=RM?.25:1,DPR=Math.min(devicePixelRatio||1,2);
+const state={isRecording:false,isPaused:false,recordingFormat:'wav',sampleRate:48000,bitrate:192,bitDepth:16,channels:2,micEnabled:true,desktopEnabled:false,desktopActive:false,micGain:1,desktopGain:1,preset:'custom',echoCancellation:true,noiseSuppression:true,autoGainControl:false,startTime:0,elapsedTime:0,timerInterval:null,audioChunks:[],mediaStream:null,desktopStream:null,mediaRecorder:null,audioContext:null,analyser:null,sourceNode:null,mixGain:null,micGainNode:null,desktopGainNode:null,destNode:null,rawAudioBuffer:[],lastRecordedUrl:null,rate:48000,file:null,recId:null,recName:null,lastFileRecId:null,savePromise:null};
+const recordBtn=$('recordBtn'),pauseBtn=$('pauseBtn'),stopBtn=$('stopBtn'),resetBtn=$('resetBtn'),timerDisplay=$('timerDisplay'),audioDeviceSelect=$('audioDeviceSelect'),levelBar=$('levelBar'),dbValue=$('dbValue'),statusText=$('statusText'),dock=$('dock')||document.querySelector('.dock');
+const hap=p=>navigator.vibrate&&navigator.vibrate(p);
+let td=new Uint8Array(1024).fill(128),fd=new Uint8Array(1024);
+
+/* ---------- Motion: timeline a generatori (stile Motion Canvas) ---------- */
+let dt=.016,T=0,kick=0,lv=0,lvS=0,b1=0,b3=0,live=false,W=0,H=0,orbPx=100;
+const flows=[],rip=[],flow=g=>flows.push(g());
+function* tween(d,f,e=x=>1-(1-x)**3){for(let t=0;t<d;t+=dt){f(e(t/d));yield}f(1)}
+function* wait(d){for(let t=0;t<d;t+=dt)yield}
+function* rippleFx(){const o={r:0,a:0};rip.push(o);yield*tween(1.2,v=>{o.r=orbPx*(1.2+v*1.1);o.a=.5*(1-v)});rip.splice(rip.indexOf(o),1)}
+function* pulse(){yield*tween(.7,v=>kick=1-v)}
+
+/* ---------- Palette condivisa CSS <-> canvas ---------- */
+const COL={idle:[139,216,232],rec:[255,180,171],pause:[255,184,112],done:[151,216,147]};
+let col=[...COL.idle],tgt=COL.idle,SEC=[180,201,205],THEME='dark';
+const hex2rgb=h=>{h=String(h).trim().replace('#','');if(h.length===3)h=h.split('').map(c=>c+c).join('');const n=parseInt(h,16)||0;return[(n>>16)&255,(n>>8)&255,n&255]};
+function themeSync(){
+  const cs=getComputedStyle(B),g=n=>cs.getPropertyValue(n).trim();
+  THEME=B.dataset.theme||'dark';
+  COL.idle=hex2rgb(g('--primary'));COL.rec=hex2rgb(g('--error'));COL.pause=hex2rgb(g('--tertiary'));COL.done=hex2rgb(g('--ok'));
+  SEC=hex2rgb(g('--secondary'));
+  tgt=COL[B.dataset.s]||COL.idle;col=[...tgt];
+  const meta=document.querySelector('meta[name="theme-color"]');
+  if(meta)meta.content=g('--surface');
+  if(window.mat&&window.wire){
+    const c2=hex2rgb(g('--on-primary-container'));
+    mat.uniforms.c2.value.set(c2[0]/255,c2[1]/255,c2[2]/255);
+    mat.uniforms.uAlpha.value=parseFloat(g('--orb-a'))||.62;
+    mat.blending=THEME==='dark'?THREE.AdditiveBlending:THREE.NormalBlending;mat.needsUpdate=true;
+    wire.material.color.setRGB(SEC[0]/255,SEC[1]/255,SEC[2]/255);
+    wire.material.opacity=parseFloat(g('--wire-o'))||.42;
+    rings.forEach(m=>m.material.opacity=parseFloat(g('--ring-o'))||.45);
+  }
+}
+
+/* ---------- Three.js: orb di particelle reattivo ---------- */
+const VS=`uniform float t,lv,b1,b3,px,uAlpha;uniform vec3 c1,c2;attribute float sd;varying vec3 vc;varying float va;
+void main(){vec3 p=position;float n=sin(p.x*3.+t*1.1)+sin(p.y*4.-t*.9)+sin(p.z*5.+t*.7);
+float d=1.+.05*n+lv*.5*(.5+.5*sin(n*2.+sd*6.283+t*3.))+b1*.22*sin(p.y*7.+t*4.)+b3*.12*sin(p.x*13.+t*8.);
+p*=d;vec4 mv=modelViewMatrix*vec4(p,1.);gl_Position=projectionMatrix*mv;
+gl_PointSize=px*(1.6+sd*1.6+lv*3.)/-mv.z;vc=mix(c1,c2,clamp(d-.9+sd*.25,0.,1.));va=uAlpha*(.55+.45*sin(sd*40.+t*2.));}`;
+const FS=`varying vec3 vc;varying float va;void main(){float r=length(gl_PointCoord-.5);if(r>.5)discard;gl_FragColor=vec4(vc,va*smoothstep(.5,0.,r));}`;
+let R,cam,scene,orb,mat,wire,rings=[];
+if(window.THREE){try{
+  R=new THREE.WebGLRenderer({canvas:$('gl'),antialias:false,alpha:true,powerPreference:'low-power'});
+  scene=new THREE.Scene();cam=new THREE.PerspectiveCamera(50,1,.1,50);cam.position.z=4.6;
+  orb=new THREE.Group();scene.add(orb);
+  const n=2600,pos=new Float32Array(n*3),sd=new Float32Array(n);
+  for(let i=0;i<n;i++){const y=1-2*(i+.5)/n,q=Math.sqrt(1-y*y),a=i*2.39996;pos.set([Math.cos(a)*q*1.2,y*1.2,Math.sin(a)*q*1.2],i*3);sd[i]=Math.random()}
+  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(pos,3));geo.setAttribute('sd',new THREE.BufferAttribute(sd,1));
+  mat=new THREE.ShaderMaterial({uniforms:{t:{value:0},lv:{value:0},b1:{value:0},b3:{value:0},px:{value:6*DPR},uAlpha:{value:.62},c1:{value:new THREE.Vector3()},c2:{value:new THREE.Vector3(.68,.92,1)}},vertexShader:VS,fragmentShader:FS,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
+  window.mat=mat;orb.add(new THREE.Points(geo,mat));
+  wire=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.IcosahedronGeometry(.62,1)),new THREE.LineBasicMaterial({color:0xb4c9cd,transparent:true,opacity:.42,blending:THREE.AdditiveBlending}));
+  window.wire=wire;orb.add(wire);
+  [1.75,2.1].forEach((r,i)=>{const m=new THREE.Mesh(new THREE.TorusGeometry(r,.006,6,160),new THREE.MeshBasicMaterial({transparent:true,opacity:.45,blending:THREE.AdditiveBlending}));m.rotation.set(1.2+i*.5,i*.7,0);orb.add(m);rings.push(m)});
+}catch(e){R=null}}
+let vel=0,vx=0,dx=null,dy0=0;
+stage.addEventListener('pointerdown',e=>{if(e.target.closest('button,select,input,audio,a,.sheet,#scrim,.field,.chip'))return;dx=e.clientX;dy0=e.clientY});
+addEventListener('pointermove',e=>{if(dx===null)return;vel=(e.clientX-dx)*.006;vx=(e.clientY-dy0)*.004;dx=e.clientX;dy0=e.clientY});
+addEventListener('pointerup',()=>dx=null);addEventListener('pointercancel',()=>dx=null);
+function drawGL(){if(!R)return;const u=mat.uniforms,c=col.map(v=>v/255);
+  u.t.value=T;u.lv.value=lv;u.b1.value=b1;u.b3.value=b3;u.c1.value.set(c[0],c[1],c[2]);
+  orb.rotation.y+=dt*(.12+lv*.7)*SP+vel;orb.rotation.x+=-orb.rotation.x*.02+vx;vel*=.93;vx*=.9;
+  wire.rotation.set(T*.3,-T*.4,0);wire.scale.setScalar(1+lv*.5);
+  rings.forEach((m,i)=>{m.rotation.z+=dt*(i?-.3:.4)*SP;m.material.color.setRGB(c[0],c[1],c[2])});
+  R.render(scene,cam)}
+
+/* ---------- Canvas HUD: anello di livello + visualizzatori ---------- */
+const hud=$('hud'),hx=hud.getContext('2d');
+let barsSm=null,barBase=0;
+function resize(){W=stage.clientWidth;H=stage.clientHeight;hud.width=W*DPR;hud.height=H*DPR;hx.setTransform(DPR,0,0,DPR,0,0);
+  orbPx=Math.min(W*.24,H*.17);$('clock').style.top=(H*.4+orbPx*1.9+18)+'px';
+  barBase=H-132;
+  if(R){R.setPixelRatio(DPR);R.setSize(W,H,false);cam.aspect=W/H;cam.updateProjectionMatrix();const vis=2*cam.position.z*Math.tan(cam.fov*Math.PI/360);orb.scale.setScalar(orbPx/(1.2*(H/vis)));orb.position.y=vis*.1}}
+addEventListener('resize',resize);
+function drawHUD(){const c=hx,cx=W/2,cy=H*.4,r=orbPx,k=col.map(v=>v|0).join();c.clearRect(0,0,W,H);c.lineCap='round';
+  for(const o of rip){c.strokeStyle=`rgba(${k},${o.a})`;c.lineWidth=1.5;c.beginPath();c.arc(cx,cy,o.r,0,TAU);c.stroke()}
+  /* anello di livello in stile M3: binario tonale + indicatore arrotondato */
+  const R1=r*1.12;c.lineWidth=6;c.strokeStyle=`rgba(${k},.16)`;c.beginPath();c.arc(cx,cy,R1,0,TAU);c.stroke();
+  if(lvS>.005){c.lineWidth=6;c.strokeStyle=`rgba(${k},.95)`;c.beginPath();c.arc(cx,cy,R1,-Math.PI/2,-Math.PI/2+lvS*TAU);c.stroke()}
+  const sty=$('visualizerStyle').value;
+  if(sty==='ring'){const M=72;c.lineWidth=3;c.strokeStyle=`rgba(${k},.85)`;c.beginPath();
+    for(let i=0;i<M;i++){const j=i<M/2?i:M-1-i,v=fd[j*3+2]/255,len=(.05+v*.42)*r+Math.sin(T*2+i*.6)*1.2,a=i/M*TAU-Math.PI/2,ca=Math.cos(a),sn=Math.sin(a);c.moveTo(cx+ca*r*1.3,cy+sn*r*1.3);c.lineTo(cx+ca*(r*1.3+len),cy+sn*(r*1.3+len))}c.stroke()}
+  else if(sty==='wave'){c.lineWidth=8;c.strokeStyle=`rgba(${k},.15)`;c.beginPath();
+    for(let i=0;i<1024;i+=4){const x=i/1024*W,y=cy+(td[i]-128)/128*r*1.1+Math.sin(T*2+i*.05);i?c.lineTo(x,y):c.moveTo(x,y)}c.stroke();
+    c.lineWidth=2.5;c.strokeStyle=`rgba(${k},${live?.9:.35})`;c.beginPath();
+    for(let i=0;i<1024;i+=4){const x=i/1024*W,y=cy+(td[i]-128)/128*r*1.1+Math.sin(T*2+i*.05);i?c.lineTo(x,y):c.moveTo(x,y)}c.stroke()}
+  else{const N=44,maxH=Math.min(H*.24,190),step=(W*.68)/(N-1),start=W*.16;
+    if(!barsSm||barsSm.length!==N)barsSm=new Float32Array(N);
+    if(B.dataset.s!=='done')barBase=dock.getBoundingClientRect().top-16;
+    for(let i=0;i<N;i++){const idx=Math.min(fd.length-1,Math.round(Math.pow(i/(N-1),1.5)*fd.length*.72));
+      const t=live?fd[idx]/255:0;barsSm[i]+=(t-barsSm[i])*(live?.3:.12);
+      const h=2+Math.pow(barsSm[i],1.1)*maxH,x=start+i*step;
+      c.lineWidth=6;c.strokeStyle=`rgba(${k},.85)`;c.beginPath();c.moveTo(x,barBase);c.lineTo(x,barBase-h);c.stroke()}}}
+/* ---------- Analisi audio + ciclo di rendering ---------- */
+const avg=(a,s,e)=>{let t=0;for(let i=s;i<e;i++)t+=a[i];return t/(e-s)};
+function audio(){const a=state.analyser;live=!!a;let rms=0;
+  if(a){a.getByteTimeDomainData(td);a.getByteFrequencyData(fd);let s=0;for(let i=0;i<td.length;i++){const x=(td[i]-128)/128;s+=x*x}rms=Math.sqrt(s/td.length);
+    b1+=(avg(fd,0,10)/255-b1)*.3;b3+=(avg(fd,80,300)/255-b3)*.3;
+    const db=20*Math.log10(Math.max(rms,1e-4)),p=Math.min(100,Math.max(0,(db+60)*100/60));
+    levelBar.style.width=p+'%';dbValue.textContent=db.toFixed(1)+' dB';lvS+=(p/100-lvS)*.3}
+  else{b1*=.9;b3*=.9;lvS*=.9}
+  lv+=((a?Math.min(1,rms*3.5):0)+kick*.5-lv)*.25}
+let last=performance.now();
+function frame(n){requestAnimationFrame(frame);if(document.hidden){last=n;return}
+  dt=Math.min(.05,(n-last)/1000);last=n;T+=dt*SP;
+  for(let i=0;i<3;i++)col[i]+=(tgt[i]-col[i])*Math.min(1,dt*5);
+  audio();for(let i=flows.length;i--;)if(flows[i].next().done)flows.splice(i,1);drawGL();drawHUD()}
+
+/* ---------- UI nativa: snackbar, sheet, stati, ripple ---------- */
+function showToast(m,t='info'){const e=$('toast');$('toastMessage').textContent=m;e.dataset.t=t;e.classList.add('on');clearTimeout(showToast.h);showToast.h=setTimeout(()=>e.classList.remove('on'),2800)}
+const SHEETS=['confirmCard','outputCard','libraryCard','reencodeCard'];
+const showSheet=id=>SHEETS.forEach(s=>{const el=$(s),on=s===id;el.classList.toggle('open',on);if(on){try{el.scrollTop=0}catch(e){}}});
+const openSettings=()=>{$('settingsPanel').classList.add('open');$('scrim').classList.add('on')};
+const closeSettings=()=>{$('settingsPanel').classList.remove('open');$('scrim').classList.remove('on')};
+const LBL={idle:['Pronto','Pronto per registrare'],rec:['In registrazione','Registrazione in corso'],pause:['In pausa','Registrazione in pausa'],done:['Completata','Registrazione completata']};
+function updateUIState(s){B.dataset.s=s;statusText.textContent=LBL[s][0];$('recordingStateLabel').textContent=LBL[s][1];
+  pauseBtn.disabled=stopBtn.disabled=!(s==='rec'||s==='pause');tgt=COL[s]||COL.idle;col=[...tgt];
+  if(s==='idle'||s==='done'){levelBar.style.width='0%';dbValue.textContent='-∞ dB'}
+  updateSizeHints()}
+function ripple(e){if(RM)return;const el=e.currentTarget;if(!el.offsetWidth)return;
+  const r=el.getBoundingClientRect(),d=Math.max(r.width,r.height)*1.6,s=document.createElement('span');
+  s.className='rip';s.style.width=s.style.height=d+'px';s.style.left=(e.clientX-r.left-d/2)+'px';s.style.top=(e.clientY-r.top-d/2)+'px';
+  el.appendChild(s);setTimeout(()=>s.remove(),620)}
+function bindRipples(root=document){root.querySelectorAll('.ibtn,.fab,.fb,.chip,.btn-fill,.btn-out,.btn-ton,.tg,.rec-h,.exp').forEach(el=>{if(el.dataset.rip)return;el.dataset.rip='1';el.addEventListener('pointerdown',ripple)})}
+(()=>{const s=$('settingsPanel'),g=s.querySelector('.grab');let y0=null,d=0;
+  g.addEventListener('pointerdown',e=>{y0=e.clientY;g.setPointerCapture(e.pointerId);s.style.transition='none'});
+  g.addEventListener('pointermove',e=>{if(y0===null)return;d=Math.max(0,e.clientY-y0);s.style.transform=`translateY(${d}px)`});
+  const end=()=>{if(y0===null)return;s.style.transition='';s.style.transform='';if(d>90)closeSettings();y0=null;d=0};
+  g.addEventListener('pointerup',end);g.addEventListener('pointercancel',end)})();
+let wl=null;const lock=async()=>{try{wl=await navigator.wakeLock?.request('screen')}catch{}},unlock=()=>{try{wl?.release()}catch{}wl=null};
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&state.isRecording)lock()});
+
+/* ---------- Persistenza impostazioni ---------- */
+const SKEY='audioStudio.settings.v3',SKEY_V2='audioStudio.settings.v2';
+function persist(){try{localStorage.setItem(SKEY,JSON.stringify({f:state.recordingFormat,sr:+state.sampleRate,br:state.bitrate,bd:+state.bitDepth,ch:+state.channels,me:state.micEnabled,de:state.desktopEnabled,mg:state.micGain,dg:state.desktopGain,pr:state.preset,ec:state.echoCancellation,ns:state.noiseSuppression,agc:state.autoGainControl,v:$('visualizerStyle').value,t:B.dataset.theme}))}catch(e){}}
+function applyTheme(t,silent){B.dataset.theme=t;
+  document.querySelectorAll('input[name="appTheme"]').forEach(r=>r.checked=r.value===t);
+  themeSync();if(!silent)persist()}
+function setBrFill(){const br=$('bitrateRange'),a=+br.min,b=+br.max,p=b>a?(br.value-a)/(b-a)*100:0;br.style.setProperty('--p',p+'%')}
+
+/* ---------- Preset, stime dimensioni, sincronizzazione UI ---------- */
+const PRESETS={
+  ultralight:{format:'opus',sampleRate:8000,bitrate:8,bitDepth:16,channels:1,label:'Ultra leggero'},
+  voice:{format:'opus',sampleRate:16000,bitrate:24,bitDepth:16,channels:1,label:'Voce'},
+  standard:{format:'m4a',sampleRate:44100,bitrate:96,bitDepth:16,channels:2,label:'Standard'},
+  hq:{format:'wav',sampleRate:48000,bitrate:192,bitDepth:16,channels:2,label:'Alta qualità'}};
+const BITRATE_UI={opus:[6,256,2,24],m4a:[12,320,4,96],mp3:[32,320,8,128],wav:[64,320,32,192]};
+const RATES=[8000,11025,12000,16000,22050,24000,32000,44100,48000,96000];
+function estimateBytesFor(sec){
+  const ch=+state.channels||1,sr=+state.sampleRate||48000;
+  if(state.recordingFormat==='wav')return sr*ch*((+state.bitDepth||16)/8)*sec+44;
+  return ((+state.bitrate||16)*1000/8)*sec}
+function fmtBytes(n){if(!isFinite(n)||n<=0)return'0 KB';const u=['B','KB','MB','GB'];let i=0;while(n>=1024&&i<u.length-1){n/=1024;i++}
+  return (i?n.toFixed(n<10?1:0):Math.round(n))+' '+u[i]}
+function sourceLabel(){const a=[];if(state.micEnabled)a.push('Microfono');if(state.desktopEnabled)a.push('Sistema');return a.join(' + ')||'—'}
+function detectPreset(){for(const k in PRESETS){const p=PRESETS[k];
+  if(state.recordingFormat===p.format&&+state.sampleRate===p.sampleRate&&+state.bitrate===p.bitrate&&+state.bitDepth===p.bitDepth&&+state.channels===p.channels)return k}return'custom'}
+function markCustom(){state.preset='custom'}
+function syncSourceChips(){
+  const m=$('micChip'),d=$('deskChip'),ok=!!(navigator.mediaDevices&&navigator.mediaDevices.getDisplayMedia);
+  if(m){m.classList.toggle('on',state.micEnabled);m.setAttribute('aria-pressed',String(state.micEnabled));
+    const i=m.querySelector('.ms');if(i)i.textContent=state.micEnabled?'mic':'mic_off'}
+  if(d){d.classList.toggle('on',state.desktopEnabled&&ok);d.setAttribute('aria-pressed',String(state.desktopEnabled&&ok));
+    const i=d.querySelector('.ms');if(i)i.textContent=state.desktopEnabled&&ok?'speaker':'volume_off';
+    d.style.opacity=ok?'':'0.5';d.title=ok?'':'Audio di sistema non supportato in questo browser'}}
+function updateSizeHints(){
+  const perHour=fmtBytes(estimateBytesFor(3600));
+  $('srcEstimate').textContent=`≈ ${perHour}/ora`;
+  $('bitrateHint').innerHTML=+state.bitrate<24
+    ?`Stima <b>≈ ${perHour}/ora</b> · sotto 24 kbps la voce diventa molto compressa`
+    :`Stima <b>≈ ${perHour}/ora</b>`;
+  $('bitDepthHint').innerHTML=`Stima <b>≈ ${perHour}/ora</b> · ${state.bitDepth} bit`}
+function syncUIFromState(){
+  document.querySelectorAll('.fb[data-format]').forEach(b=>b.classList.toggle('on',b.dataset.format===state.recordingFormat));
+  document.querySelectorAll('.fb[data-preset]').forEach(b=>b.classList.toggle('on',b.dataset.preset===state.preset));
+  $('presetTag').textContent=state.preset==='custom'?'Personalizzato':(PRESETS[state.preset]||{}).label||'Personalizzato';
+  $('fmtLabel').textContent=state.recordingFormat.toUpperCase();
+  $('bitrateContainer').hidden=state.recordingFormat==='wav';
+  $('bitDepthContainer').hidden=state.recordingFormat!=='wav';
+  $('sampleRateSelect').value=String(+state.sampleRate);
+  $('bitDepthSelect').value=String(+state.bitDepth);
+  const [mn,mx,st,def]=BITRATE_UI[state.recordingFormat]||BITRATE_UI.wav,br=$('bitrateRange');
+  br.min=mn;br.max=mx;br.step=st;
+  let v=+state.bitrate;if(!isFinite(v)||v<mn||v>mx)v=def;
+  br.value=v;state.bitrate=+v;$('bitrateValueDisplay').textContent=v+' kbps';
+  setBrFill();
+  document.querySelectorAll('input[name="audioChannels"]').forEach(r=>r.checked=+r.value===+state.channels);
+  $('micEnabled').checked=state.micEnabled;$('desktopEnabled').checked=state.desktopEnabled;
+  const mg=Math.round(state.micGain*100),dg=Math.round(state.desktopGain*100);
+  $('micGainRange').value=mg;$('micGainDisplay').textContent=mg+'%';
+  $('desktopGainRange').value=dg;$('desktopGainDisplay').textContent=dg+'%';
+  $('micGainRange').style.setProperty('--p',(mg/2)+'%');
+  $('desktopGainRange').style.setProperty('--p',(dg/2)+'%');
+  syncSourceChips();updateSizeHints();updateConfirmPreviewCard()}
+function applyFormat(f,silent){
+  state.recordingFormat=f;
+  if(!silent){markCustom();hap(10);showToast(`Formato impostato su ${f.toUpperCase()}`)}
+  syncUIFromState();persist()}
+function applyPreset(id,silent){
+  const p=PRESETS[id];if(!p)return;
+  state.preset=id;state.recordingFormat=p.format;state.sampleRate=p.sampleRate;
+  state.bitrate=p.bitrate;state.bitDepth=p.bitDepth;state.channels=p.channels;
+  syncUIFromState();
+  if(!silent){hap(10);showToast(`Preset «${p.label}» attivo`)}
+  persist()}
+function applyLiveGains(){
+  if(state.micGainNode)state.micGainNode.gain.value=state.micGain*(state.micEnabled?1:0);
+  if(state.desktopGainNode)state.desktopGainNode.gain.value=state.desktopGain*(state.desktopEnabled?1:0)}
+
+/* ---------- Motore di registrazione (logica originale) ---------- */
+async function getAudioDevices(){try{
+  const s=await navigator.mediaDevices.getUserMedia({audio:true});s.getTracks().forEach(t=>t.stop());
+  const inputs=(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='audioinput');
+  audioDeviceSelect.innerHTML='';inputs.forEach((d,i)=>{const o=document.createElement('option');o.value=d.deviceId;o.text=d.label||`Microfono ${i+1}`;audioDeviceSelect.appendChild(o)})
+}catch(err){showToast('Accesso al microfono negato: '+err.message,'error');audioDeviceSelect.innerHTML='<option value="">Microfono non disponibile</option>'}}
+
+function desktopHintForOS(){
+  const ua=navigator.userAgent||'';
+  if(/Mac OS X|Macintosh/i.test(ua))return'Su macOS il browser condivide solo l\'audio di una scheda: scegli una scheda con audio';
+  if(/Linux|X11/i.test(ua))return'Su Linux serve PipeWire e il portale di condivisione schermo';
+  return'Seleziona «Schermo intero» e spunta «Condividi audio» nella finestra di cattura'}
+async function openDesktopAudio(){
+  const md=navigator.mediaDevices;
+  if(!md||!md.getDisplayMedia){showToast('Audio di sistema non supportato in questo browser','error');return null}
+  let s=null;
+  try{s=await md.getDisplayMedia({video:{frameRate:1},audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}})}
+  catch(err){
+    if(err&&err.name==='NotAllowedError'){showToast('Audio di sistema non condiviso: registro solo il microfono');return null}
+    console.warn('getDisplayMedia',err);
+    showToast('Audio di sistema non disponibile: '+(err.message||err.name),'error');return null}
+  if(!s.getAudioTracks().length){
+    try{s.getTracks().forEach(t=>t.stop())}catch(e){}
+    showToast(desktopHintForOS(),'error');return null}
+  /* il video track non viene registrato ma va tenuto vivo: se si ferma, il browser chiude anche l'audio */
+  try{const v=$('deskVideo');v.srcObject=s;v.muted=true;await v.play()}catch(e){}
+  hap(20);return s}
+
+async function startRecording(){
+  if(!state.micEnabled&&!state.desktopEnabled){showToast('Attiva almeno una sorgente (mic o desktop)','error');return}
+  try{
+    showSheet(null);
+    state.desktopStream=null;state.desktopActive=false;
+    /* 1) desktop per primo: getDisplayMedia richiede un'attivazione utente fresca */
+    if(state.desktopEnabled){
+      state.desktopStream=await openDesktopAudio();
+      state.desktopActive=!!state.desktopStream;
+      if(!state.desktopStream&&!state.micEnabled){showToast('Nessuna sorgente disponibile','error');updateUIState('idle');return}
+      if(state.desktopStream&&state.echoCancellation)
+        showToast('Suggerimento: usa le cuffie per evitare il loop dell\'audio di sistema');
+    }
+    /* 2) microfono */
+    if(state.micEnabled){
+      state.mediaStream=await navigator.mediaDevices.getUserMedia({audio:{deviceId:audioDeviceSelect.value?{exact:audioDeviceSelect.value}:undefined,channelCount:+state.channels,echoCancellation:state.echoCancellation,noiseSuppression:state.noiseSuppression,autoGainControl:state.autoGainControl}});
+    }else state.mediaStream=null;
+
+    /* 3) contesto audio al campionamento richiesto: vale per WAV e per MediaRecorder */
+    const AC=window.AudioContext||window.webkitAudioContext,want=+state.sampleRate;
+    let ctx;
+    try{ctx=new AC({sampleRate:want,latencyHint:'interactive'})}
+    catch(e){ctx=new AC({latencyHint:'interactive'});showToast(`Campionamento ${want} Hz non supportato: uso ${ctx.sampleRate} Hz`,'error')}
+    state.audioContext=ctx;
+    if(ctx.state==='suspended'){try{await ctx.resume()}catch(e){}}
+    if(ctx.sampleRate!==want&&want)showToast(`Il motore audio usa ${ctx.sampleRate} Hz invece di ${want} Hz`);
+    state.rate=ctx.sampleRate;
+    state.cap={format:state.recordingFormat,rate:ctx.sampleRate,channels:+state.channels,bits:+state.bitDepth,bitrate:+state.bitrate};
+
+    /* 4) mixer: mic + desktop in un unico stream */
+    const mix=ctx.createGain();
+    try{mix.channelCount=+state.channels;mix.channelCountMode='explicit';mix.channelInterpretation='speakers'}catch(e){}
+    state.mixGain=mix;
+    let dest;
+    try{dest=new MediaStreamAudioDestinationNode(ctx,{channelCount:+state.channels})}
+    catch(e){dest=ctx.createMediaStreamDestination()}
+    try{dest.channelCount=+state.channels}catch(e){}
+    state.destNode=dest;mix.connect(dest);
+
+    if(state.mediaStream){
+      const src=ctx.createMediaStreamSource(state.mediaStream);
+      state.sourceNode=src;
+      state.micGainNode=ctx.createGain();
+      state.micGainNode.gain.value=state.micGain*(state.micEnabled?1:0);
+      src.connect(state.micGainNode);state.micGainNode.connect(mix);
+    }
+    if(state.desktopStream&&state.desktopStream.getAudioTracks().length){
+      state.desktopGainNode=ctx.createGain();
+      state.desktopGainNode.gain.value=state.desktopGain*(state.desktopEnabled?1:0);
+      ctx.createMediaStreamSource(new MediaStream(state.desktopStream.getAudioTracks())).connect(state.desktopGainNode);
+      state.desktopGainNode.connect(mix);
+    }
+    state.analyser=ctx.createAnalyser();state.analyser.fftSize=2048;
+    mix.connect(state.analyser);
+    td=new Uint8Array(state.analyser.frequencyBinCount);fd=new Uint8Array(state.analyser.frequencyBinCount);
+
+    /* 5) WAV via ScriptProcessor, formati compressi via MediaRecorder sullo stream mixato */
+    state.audioChunks=[];state.rawAudioBuffer=[];
+    setupWavRecorder(mix);
+    if(state.recordingFormat!=='wav'){
+      const mt=getSupportedMimeType(state.cap.format),opt={audioBitsPerSecond:Math.max(1,state.cap.bitrate)*1000};
+      if(mt)opt.mimeType=mt;
+      try{
+        state.mediaRecorder=new MediaRecorder(dest.stream,opt);
+        state.mediaRecorder.ondataavailable=e=>{if(e.data.size>0)state.audioChunks.push(e.data)};
+        state.mediaRecorder.start(100);
+      }catch(e){console.log('MediaRecorder non disponibile, uso il percorso WAV',e);showToast('Formato non supportato dal browser: salvo in WAV','error')}
+    }
+
+    state.isRecording=true;state.isPaused=false;state.startTime=Date.now()-state.elapsedTime;startTimer();
+    updateUIState('rec');flow(rippleFx);flow(pulse);hap(30);lock();showToast('Registrazione avviata','success')
+  }catch(err){console.error(err);cleanupAudioGraph();showToast('Impossibile avviare la registrazione: '+err.message,'error')}
+}
+
+function cleanupAudioGraph(){
+  try{if(state.mediaRecorder&&state.mediaRecorder.state!=='inactive')state.mediaRecorder.stop()}catch(e){}
+  state.mediaRecorder=null;
+  try{state.mediaStream&&state.mediaStream.getTracks().forEach(t=>t.stop())}catch(e){}
+  try{state.desktopStream&&state.desktopStream.getTracks().forEach(t=>t.stop())}catch(e){}
+  state.mediaStream=null;state.desktopStream=null;state.desktopActive=false;
+  try{const v=$('deskVideo');v.pause();v.srcObject=null}catch(e){}
+  if(wavNode){try{wavNode.disconnect()}catch(e){}wavNode=null}
+  if(wavSink){try{wavSink.disconnect()}catch(e){}wavSink=null}
+  [state.micGainNode,state.desktopGainNode,state.mixGain,state.destNode,state.sourceNode,state.analyser].forEach(n=>{try{n&&n.disconnect()}catch(e){}});
+  state.micGainNode=state.desktopGainNode=state.mixGain=state.destNode=state.sourceNode=null;
+  try{state.audioContext&&state.audioContext.close()}catch(e){}
+  state.audioContext=null;state.analyser=null}
+
+function getSupportedMimeType(f){const t={mp3:['audio/mpeg','audio/mp3','audio/webm;codecs=opus'],m4a:['audio/mp4','audio/aac','audio/webm;codecs=opus'],opus:['audio/webm;codecs=opus','audio/ogg;codecs=opus'],wav:['audio/wav']};
+  for(const x of t[f]||[])if(MediaRecorder.isTypeSupported(x))return x;return''}
+
+let wavNode=null,wavSink=null;
+function setupWavRecorder(src){
+  const ch=(state.cap&&state.cap.channels)||+state.channels||1;
+  wavNode=state.audioContext.createScriptProcessor(4096,2,2);
+  wavNode.onaudioprocess=e=>{if(!state.isRecording||state.isPaused)return;
+    const n=e.inputBuffer.length;
+    const l=e.inputBuffer.getChannelData(0);
+    const r=e.inputBuffer.numberOfChannels>1?e.inputBuffer.getChannelData(1):l;
+    let o;
+    if(ch===2){o=new Float32Array(n*2);for(let i=0;i<n;i++){o[i*2]=l[i];o[i*2+1]=r[i]}}
+    else{o=new Float32Array(n);for(let i=0;i<n;i++)o[i]=(l[i]+r[i])*.5}
+    state.rawAudioBuffer.push(o)};
+  src.connect(wavNode);
+  /* sink a guadagno zero: fa girare il processore senza monitorare l'audio in cuffia */
+  wavSink=state.audioContext.createGain();wavSink.gain.value=0;
+  wavNode.connect(wavSink);wavSink.connect(state.audioContext.destination)}
+
+function pauseRecording(){if(!state.isRecording)return;
+  if(state.isPaused){state.isPaused=false;state.startTime=Date.now()-state.elapsedTime;startTimer();if(state.mediaRecorder?.state==='paused')state.mediaRecorder.resume();updateUIState('rec');showToast('Registrazione ripresa')}
+  else{state.isPaused=true;clearInterval(state.timerInterval);if(state.mediaRecorder?.state==='recording')state.mediaRecorder.pause();updateUIState('pause');showToast('Registrazione in pausa')}
+  hap(15)}
+
+function stopRecording(){if(!state.isRecording)return;
+  state.isRecording=false;state.isPaused=false;clearInterval(state.timerInterval);
+  if(state.audioContext)state.rate=state.audioContext.sampleRate;
+  cleanupAudioGraph();
+  td.fill(128);fd.fill(0);unlock();updateUIState('done');flow(rippleFx);hap([20,40,20]);
+  updateConfirmPreviewCard();showSheet('confirmCard');
+  saveMasterToLibrary()}
+
+function cfg(){return state.cap||{format:state.recordingFormat,rate:+state.sampleRate,channels:+state.channels,bits:+state.bitDepth,bitrate:+state.bitrate}}
+function updateConfirmPreviewCard(){
+  const c=cfg();
+  $('capturedDurationBadge').textContent=`Durata: ${formatTime(state.elapsedTime)}`;
+  $('confirmFormatLabel').textContent=c.format.toUpperCase();
+  $('confirmSampleLabel').textContent=`${c.rate} Hz • ${c.channels===1?'Mono':'Stereo'}`;
+  $('confirmBitrateLabel').textContent=c.format==='wav'?(c.bits===32?'PCM 32 bit float':`PCM ${c.bits} bit`):`~${c.bitrate} kbps`;
+  $('confirmSourcesLabel').textContent=sourceLabel();
+  $('confirmSizeLabel').textContent=state.elapsedTime>0?fmtBytes(estimateBytesFor(state.elapsedTime/1000)):`≈ ${fmtBytes(estimateBytesFor(3600))}/ora`}
+
+$('processExportBtn').addEventListener('click',async()=>{
+  if(!state.rawAudioBuffer.length){showToast('Nessun dato audio da salvare','error');return}
+  if(state.savePromise)await state.savePromise.catch(()=>{});
+  const want=cfg().format;
+  let blob,ext=want;
+  if(want==='wav'){blob=createWavBlob()}
+  else if(!state.audioChunks.length){ext='wav';blob=createWavBlob();showToast('Codifica non riuscita: salvo in WAV senza perdite','error')}
+  else{
+    const mime=getSupportedMimeType(want)||'audio/webm';
+    blob=new Blob(state.audioChunks,{type:mime});
+    ext=mime.includes('webm')?'webm':mime.includes('ogg')?`ogg`:mime.includes('mp4')||mime.includes('aac')?'m4a':mime.includes('mpeg')?'mp3':want;
+    if(ext!==want)showToast(`Il browser non supporta ${want.toUpperCase()}: salvo in ${ext.toUpperCase()}`)
+  }
+  finalizeExportBlob(blob,ext);flow(rippleFx);hap(25);
+  showToast(ext!==want?`Salvato in ${ext.toUpperCase()}: ${want.toUpperCase()} non supportato dal browser`:'File generato con successo',ext!==want?'error':'success')});
+
+function rawPCM(){let n=0;state.rawAudioBuffer.forEach(a=>n+=a.length);const m=new Float32Array(n);let o=0;
+  state.rawAudioBuffer.forEach(a=>{m.set(a,o);o+=a.length});return m}
+function createWavBlob(bits){const c=cfg();
+  return new Blob([encodeWAV(rawPCM(),c.rate,c.channels,bits||c.bits)],{type:'audio/wav'})}
+function encodeWAV(s,sr,ch,bits){
+  bits=+bits||16;
+  const bps=bits===32?4:bits===24?3:bits===8?1:2,blockAlign=ch*bps,byteRate=sr*blockAlign,dataSize=s.length*bps;
+  const b=new ArrayBuffer(44+dataSize),v=new DataView(b),w=(o,t)=>{for(let i=0;i<t.length;i++)v.setUint8(o+i,t.charCodeAt(i))};
+  w(0,'RIFF');v.setUint32(4,36+dataSize,true);w(8,'WAVE');
+  w(12,'fmt ');v.setUint32(16,16,true);
+  v.setUint16(20,bits===32?3:1,true);              /* 3 = IEEE float, 1 = PCM */
+  v.setUint16(22,ch,true);v.setUint32(24,sr,true);v.setUint32(28,byteRate,true);
+  v.setUint16(32,blockAlign,true);v.setUint16(34,bits,true);
+  w(36,'data');v.setUint32(40,dataSize,true);
+  let i=44;
+  for(let k=0;k<s.length;k++){
+    const x=Math.max(-1,Math.min(1,s[k]||0));
+    if(bits===8){v.setUint8(i,Math.max(0,Math.min(255,Math.round(x*127+128))));i+=1}
+    else if(bits===16){v.setInt16(i,x<0?x*0x8000:x*0x7FFF,true);i+=2}
+    else if(bits===24){const n=Math.round(x*(x<0?0x800000:0x7FFFFF));v.setUint8(i,n&255);v.setUint8(i+1,(n>>8)&255);v.setUint8(i+2,(n>>16)&255);i+=3}
+    else{v.setFloat32(i,x,true);i+=4}
+  }
+  return b}
+
+function stampName(){const d=new Date();return `Rec_${d.toISOString().slice(0,10)}_${d.toTimeString().slice(0,5).replace(':','')}`}
+function showFileCard(blob,name,meta){
+  if(state.lastRecordedUrl)URL.revokeObjectURL(state.lastRecordedUrl);state.lastRecordedUrl=URL.createObjectURL(blob);
+  $('outputFileName').textContent=name;$('outputFileSize').textContent=fmtBytes(blob.size);
+  $('outputFileDuration').textContent=meta.dur;$('outputFileMeta').textContent=meta.meta;
+  $('outputFileSources').textContent=meta.src;
+  $('audioPlayer').src=state.lastRecordedUrl;$('downloadBtn').href=state.lastRecordedUrl;$('downloadBtn').download=name;
+  state.file=new File([blob],name,{type:blob.type});$('shareBtn').hidden=!(navigator.canShare&&navigator.canShare({files:[state.file]}));
+  $('outputReBtn').hidden=!(state.lastFileRecId||state.recId);
+  showSheet('outputCard')}
+function finalizeExportBlob(blob,ext){
+  const c=cfg(),name=(state.recName||stampName())+'.'+ext;
+  state.lastFileRecId=state.recId||null;
+  showFileCard(blob,name,{dur:formatTime(state.elapsedTime),meta:`${ext.toUpperCase()} / ${c.rate} Hz`,src:sourceLabel()});
+  if(state.recId)addExport(state.recId,blob,name,{format:ext,rate:c.rate,channels:c.channels,bits:c.bits,bitrate:c.bitrate})
+    .then(()=>refreshLibrary()).catch(()=>{})}
+$('shareBtn').addEventListener('click',()=>navigator.share({files:[state.file]}).catch(()=>{}));
+
+function startTimer(){clearInterval(state.timerInterval);state.timerInterval=setInterval(()=>{
+  state.elapsedTime=Date.now()-state.startTime;timerDisplay.innerHTML=timeHTML(state.elapsedTime);
+  $('srcEstimate').textContent=fmtBytes(estimateBytesFor(state.elapsedTime/1000))},30)}
+function timeHTML(ms){const s=Math.floor(ms/1000),p=n=>String(n).padStart(2,'0');return`${p(Math.floor(s/60))}:${p(s%60)}<small>.${p(Math.floor(ms%1000/10))}</small>`}
+function formatTime(ms){const s=Math.floor(ms/1000),p=n=>String(n).padStart(2,'0');return`${p(Math.floor(s/60))}:${p(s%60)}`}
+function resetAll(){if(state.isRecording)stopRecording();state.elapsedTime=0;state.cap=null;state.recId=null;state.recName=null;state.lastFileRecId=null;state.savePromise=null;state.rawAudioBuffer=[];state.audioChunks=[];timerDisplay.innerHTML=timeHTML(0);showSheet(null);updateUIState('idle');updateSizeHints();hap(10)}
+
+/* ---------- Eventi ---------- */
+recordBtn.addEventListener('click',()=>state.isRecording?pauseRecording():startRecording());
+pauseBtn.addEventListener('click',pauseRecording);stopBtn.addEventListener('click',stopRecording);
+resetBtn.addEventListener('click',()=>{resetAll();showToast('Interfaccia azzerata')});
+$('newBtn').addEventListener('click',()=>{resetAll();showToast('Pronto per una nuova registrazione')});
+$('toggleSettingsBtn').addEventListener('click',openSettings);$('activeFormatBadge').addEventListener('click',openSettings);
+$('openSidebarSettingsBtn').addEventListener('click',openSettings);
+$('closeSettingsBtn').addEventListener('click',closeSettings);$('scrim').addEventListener('click',closeSettings);
+addEventListener('keydown',e=>{if(e.key==='Escape')closeSettings()});
+function guardSources(){
+  if(!state.micEnabled&&!state.desktopEnabled){
+    state.micEnabled=true;$('micEnabled').checked=true;
+    showToast('Tieni attiva almeno una sorgente','error');hap([15,30,15])}}
+document.querySelectorAll('.fb[data-format]').forEach(btn=>btn.addEventListener('click',()=>applyFormat(btn.dataset.format)));
+document.querySelectorAll('.fb[data-preset]').forEach(btn=>btn.addEventListener('click',()=>applyPreset(btn.dataset.preset)));
+$('sampleRateSelect').addEventListener('change',e=>{state.sampleRate=+e.target.value;markCustom();syncUIFromState();persist()});
+$('bitDepthSelect').addEventListener('change',e=>{state.bitDepth=+e.target.value;markCustom();syncUIFromState();persist()});
+$('bitrateRange').addEventListener('input',e=>{state.bitrate=+e.target.value;markCustom();$('bitrateValueDisplay').textContent=`${e.target.value} kbps`;setBrFill();updateSizeHints();updateConfirmPreviewCard();persist()});
+document.querySelectorAll('input[name="audioChannels"]').forEach(r=>r.addEventListener('change',e=>{state.channels=+e.target.value;markCustom();syncUIFromState();persist()}));
+$('micEnabled').addEventListener('change',e=>{state.micEnabled=e.target.checked;guardSources();applyLiveGains();syncUIFromState();persist()});
+$('desktopEnabled').addEventListener('change',e=>{state.desktopEnabled=e.target.checked;guardSources();applyLiveGains();syncUIFromState();persist()});
+$('micGainRange').addEventListener('input',e=>{state.micGain=+e.target.value/100;$('micGainDisplay').textContent=e.target.value+'%';e.target.style.setProperty('--p',(+e.target.value/2)+'%');applyLiveGains();persist()});
+$('desktopGainRange').addEventListener('input',e=>{state.desktopGain=+e.target.value/100;$('desktopGainDisplay').textContent=e.target.value+'%';e.target.style.setProperty('--p',(+e.target.value/2)+'%');applyLiveGains();persist()});
+$('micChip').addEventListener('click',()=>{const c=$('micEnabled');c.checked=!c.checked;c.dispatchEvent(new Event('change'))});
+$('deskChip').addEventListener('click',()=>{const c=$('desktopEnabled');c.checked=!c.checked;c.dispatchEvent(new Event('change'))});
+$('echoCancellation').addEventListener('change',e=>{state.echoCancellation=e.target.checked;persist()});
+$('noiseSuppression').addEventListener('change',e=>{state.noiseSuppression=e.target.checked;persist()});
+$('autoGainControl').addEventListener('change',e=>{state.autoGainControl=e.target.checked;persist()});
+$('visualizerStyle').addEventListener('change',()=>persist());
+document.querySelectorAll('input[name="appTheme"]').forEach(r=>r.addEventListener('change',e=>{applyTheme(e.target.value);hap(10)}));
+
+/* ---------- Libreria locale (IndexedDB): salvataggio persistente + ricodifica ---------- */
+const DB_NAME='audioStudio.db',DB_VER=1;
+let dbPromise=null;
+function db(){if(dbPromise)return dbPromise;dbPromise=new Promise((res,rej)=>{
+  if(!window.indexedDB){rej(new Error('IndexedDB non disponibile'));return}
+  const r=indexedDB.open(DB_NAME,DB_VER);
+  r.onupgradeneeded=()=>{const d=r.result;
+    if(!d.objectStoreNames.contains('recs')){const s=d.createObjectStore('recs',{keyPath:'id'});s.createIndex('createdAt','createdAt')}
+    if(!d.objectStoreNames.contains('out')){const s=d.createObjectStore('out',{keyPath:'id'});s.createIndex('recId','recId')}};
+  r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});return dbPromise}
+function dbOp(store,mode,fn){return db().then(d=>new Promise((res,rej)=>{
+  const t=d.transaction(store,mode);let v;
+  try{const req=fn(t.objectStore(store));if(req){req.onsuccess=()=>v=req.result;req.onerror=()=>rej(req.error)}}
+  catch(e){rej(e);return}
+  t.oncomplete=()=>res(v);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error)}))}
+const dbPut=(s,o)=>dbOp(s,'readwrite',st=>st.put(o));
+const dbGet=(s,k)=>dbOp(s,'readonly',st=>st.get(k));
+const dbDel=(s,k)=>dbOp(s,'readwrite',st=>st.delete(k));
+const dbAll=s=>dbOp(s,'readonly',st=>st.getAll());
+const newId=()=>'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const fmtDate=ts=>new Date(ts).toLocaleString('it-IT',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+function estBytes(fmt,rate,bits,kbps,ch,sec){
+  if(fmt==='wav')return rate*ch*((+bits||16)/8)*sec+44;
+  return (+kbps||16)*1000/8*sec}
+function downloadBlob(blob,name){
+  const u=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(u),6000)}
+
+/* Il master è PCM non compresso: serve per ricodificare senza perdite */
+async function saveMasterToLibrary(){
+  if(state.recId||!state.rawAudioBuffer.length)return;
+  const p=(async()=>{
+  const c=cfg(),mb=(+c.bits>=24?24:16);
+  let blob;try{blob=createWavBlob(mb)}catch(e){console.warn(e);return}
+  if(blob.size>260*1024*1024){showToast('Registrazione troppo grande per il salvataggio locale: scaricala subito','error');return}
+  const rec={id:newId(),name:stampName(),createdAt:Date.now(),durationMs:state.elapsedTime,
+    cap:{...c},sources:sourceLabel(),master:blob,masterBits:mb,size:blob.size};
+  try{
+    await dbPut('recs',rec);
+    state.recId=rec.id;state.recName=rec.name;
+    try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
+    showToast('Registrazione salvata: la trovi in «Registrazioni»','success');
+    refreshLibrary();
+  }catch(e){console.warn(e);showToast('Salvataggio locale non disponibile: scarica il file ora','error')}
+  })();
+  state.savePromise=p;return p}
+function saveMasterToLibraryLegacy(){}
+
+async function addExport(recId,blob,name,cap){
+  const o={id:newId(),recId,name,mime:blob.type||'',size:blob.size,createdAt:Date.now(),cap,blob};
+  await dbPut('out',o);
+  const all=(await dbAll('out')).filter(x=>x.recId===recId).sort((a,b)=>b.createdAt-a.createdAt);
+  for(const x of all.slice(6))await dbDel('out',x.id);
+  return o}
+
+/* ---------- UI della libreria ---------- */
+const libOpen=new Set(),libUrls=new Map();
+let libCache={recs:[],outs:[]},libDbError=false;
+function clearLibUrls(){libUrls.forEach(u=>URL.revokeObjectURL(u));libUrls.clear()}
+function urlFor(rec){let u=libUrls.get(rec.id);if(!u){u=URL.createObjectURL(rec.master);libUrls.set(rec.id,u)}return u}
+function markLibDot(){const d=$('libDot');if(d)d.hidden=!libCache.recs.length}
+async function refreshLibrary(){
+  try{const [recs,outs]=await Promise.all([dbAll('recs'),dbAll('out')]);
+    recs.sort((a,b)=>b.createdAt-a.createdAt);libCache={recs,outs};libDbError=false}
+  catch(e){console.warn('IndexedDB',e);libCache={recs:[],outs:[]};libDbError=true}
+  clearLibUrls();renderLibrary();markLibDot();updateLibStats()}
+function renderLibrary(){
+  const {recs,outs}=libCache,list=$('libList');if(!list)return;
+  if(!recs.length){list.innerHTML='<div class="empty"><span class="ms">'+(libDbError?'cloud_off':'library_music')+'</span>'
+    +(libDbError?'Archivio locale non accessibile.<br>Se apri il file con <b>file://</b> usa un server locale (es. <b>python -m http.server</b>) per salvare le registrazioni.':
+      'Nessuna registrazione salvata.<br>Registra qualcosa: verrà salvata qui automaticamente.')+'</div>';return}
+  list.innerHTML=recs.map(r=>{
+    const c=r.cap||{},open=libOpen.has(r.id);
+    const ex=outs.filter(o=>o.recId===r.id).sort((a,b)=>b.createdAt-a.createdAt);
+    const meta=[formatTime(r.durationMs||0),`${((+c.rate||48000)/1000)} kHz`,c.channels===1?'Mono':'Stereo',fmtBytes(r.size||0)].join(' · ');
+    return `<article class="rec${open?' on':''}" data-id="${r.id}">
+      <button class="rec-h" data-act="toggle" aria-expanded="${open}">
+        <span class="ficon ms fill" aria-hidden="true">graphic_eq</span>
+        <div><b>${r.name}.wav</b><small>${fmtDate(r.createdAt)} · ${meta}</small></div>
+        <span class="ms chev" aria-hidden="true">expand_more</span>
+      </button>
+      <div class="rec-b">
+        <audio controls preload="none"${open?` src="${urlFor(r)}"`:''}></audio>
+        <div class="chips">
+          <button class="btn-out mini" data-act="master"><span class="ms">download</span>Master WAV</button>
+          <button class="btn-ton mini" data-act="re"><span class="ms">tune</span>Ricodifica</button>
+          <button class="btn-out mini" data-act="del"><span class="ms">delete</span>Elimina</button>
+        </div>
+        ${ex.map(o=>`<button class="exp" data-act="exp" data-oid="${o.id}"><span class="ms" aria-hidden="true">audio_file</span>
+          <div><b>${o.name}</b><small>${fmtBytes(o.size)} · ${fmtDate(o.createdAt)}</small></div>
+          <span class="ms" aria-hidden="true">download</span></button>`).join('')}
+      </div></article>`}).join('');
+  bindRipples(list)}
+async function updateLibStats(){
+  const {recs,outs}=libCache;let used=0;recs.forEach(r=>used+=r.size||0);outs.forEach(o=>used+=o.size||0);
+  let txt=`${recs.length} ${recs.length===1?'registrazione':'registrazioni'} · <b>${fmtBytes(used)}</b>`;
+  try{const e=await navigator.storage.estimate();if(e&&e.quota)txt+=` di ${fmtBytes(e.quota)}`}catch(e){}
+  const el=$('libStats');if(el)el.innerHTML=txt}
+async function deleteRecording(rec){
+  if(!confirm(`Eliminare «${rec.name}»? L'operazione non è reversibile.`))return;
+  try{
+    for(const o of libCache.outs.filter(x=>x.recId===rec.id))await dbDel('out',o.id);
+    await dbDel('recs',rec.id);libOpen.delete(rec.id);
+    if(state.recId===rec.id){state.recId=null;state.recName=null}
+    showToast('Registrazione eliminata');await refreshLibrary()
+  }catch(e){showToast('Eliminazione non riuscita','error')}}
+
+/* ---------- Ricodifica: preset + motore ---------- */
+let reRec=null,reJob=null,reCap={format:'opus',rate:16000,bitrate:24,bits:16,channels:1,normalize:false};
+function openReencode(rec){
+  if(!rec||!rec.master){showToast('Master non disponibile per questa registrazione','error');return}
+  reRec=rec;const c=rec.cap||{},srcCh=+c.channels||2,srcRate=+c.rate||48000;
+  const fmt=(c.format&&c.format!=='wav')?c.format:'opus';
+  let rate=fmt==='wav'?srcRate:Math.min(srcRate,48000);
+  if(fmt==='opus'&&rate>24000)rate=16000;
+  reCap={format:fmt,rate,bitrate:fmt==='wav'?192:(+c.bitrate||96),bits:+c.bits||16,
+    channels:(c.format==='wav'&&fmt!=='wav')?1:srcCh,normalize:false};
+  $('reSub').innerHTML=`<b style="color:var(--on-surface)">${rec.name}</b> · master ${fmtBytes(rec.size||0)}<br>Il master originale resta intatto: qui crei una nuova versione.`;
+  syncReUI();showSheet('reencodeCard')}
+function syncReUI(){
+  const f=reCap.format;
+  document.querySelectorAll('#reFormatGroup .fb').forEach(b=>b.classList.toggle('on',b.dataset.rf===f));
+  const [mn,mx,st,def]=BITRATE_UI[f]||BITRATE_UI.wav,br=$('reBitrate');
+  br.min=mn;br.max=mx;br.step=st;
+  let v=+reCap.bitrate;if(!isFinite(v)||v<mn||v>mx)v=def;
+  br.value=v;reCap.bitrate=+v;
+  br.style.setProperty('--p',(mx>mn?(v-mn)/(mx-mn)*100:0)+'%');
+  $('reBitrateValue').textContent=v+' kbps';
+  $('reBitrateSet').hidden=f==='wav';
+  $('reBitsSet').hidden=f!=='wav';
+  $('reBits').value=String(reCap.bits);
+  if(!RATES.includes(+reCap.rate))reCap.rate=RATES.reduce((a,b)=>Math.abs(b-reCap.rate)<Math.abs(a-reCap.rate)?b:a,48000);
+  $('reRate').value=String(reCap.rate);
+  document.querySelectorAll('input[name="reChannels"]').forEach(r=>r.checked=+r.value===reCap.channels);
+  $('reNormalize').checked=!!reCap.normalize;
+  document.querySelectorAll('#rePresetGroup .fb').forEach(b=>{const p=PRESETS[b.dataset.rpreset];
+    b.classList.toggle('on',!!p&&p.format===reCap.format&&p.sampleRate===reCap.rate&&p.bitrate===reCap.bitrate
+      &&p.channels===reCap.channels&&(reCap.format!=='wav'||p.bitDepth===reCap.bits))});
+  const sec=(reRec?reRec.durationMs:0)/1000;
+  $('reEstimateHint').innerHTML=`Peso stimato: <b>≈ ${fmtBytes(estBytes(f,reCap.rate,reCap.bits,reCap.bitrate,reCap.channels,sec))}</b>`
+    +(f==='wav'?' · conversione immediata':' · la codifica avviene in tempo reale');
+  if(!reJob)$('reStatus').textContent=''}
+
+async function decodeMaster(rec){
+  const ab=await rec.master.arrayBuffer(),AC=window.AudioContext||window.webkitAudioContext;
+  let ctx;try{ctx=new AC({sampleRate:(rec.cap&&+rec.cap.rate)||48000})}catch(e){ctx=new AC()}
+  try{return await ctx.decodeAudioData(ab)}finally{try{ctx.close()}catch(e){}}}
+function interleaveBuffer(b){
+  const ch=b.numberOfChannels,n=b.length,out=new Float32Array(n*ch);
+  for(let c=0;c<ch;c++){const d=b.getChannelData(c);for(let i=0;i<n;i++)out[i*ch+c]=d[i]}
+  return out}
+async function renderBuffer(buf,rate,ch,norm){
+  const OC=window.OfflineAudioContext||window.webkitOfflineAudioContext;
+  const oc=new OC(ch,Math.max(1,Math.ceil(buf.duration*rate)),rate);
+  const s=oc.createBufferSource();s.buffer=buf;
+  if(norm){
+    let peak=0;for(let c=0;c<buf.numberOfChannels;c++){const d=buf.getChannelData(c);
+      for(let i=0;i<d.length;i++){const a=d[i]<0?-d[i]:d[i];if(a>peak)peak=a}}
+    const g=oc.createGain();g.gain.value=peak>1e-4?Math.min(.891/peak,8):1;
+    s.connect(g);g.connect(oc.destination)
+  }else s.connect(oc.destination);
+  s.start(0);return oc.startRendering()}
+function encodeRealtime(buf,mime,kbps,onProg,job){
+  return new Promise((res,rej)=>{(async()=>{
+    const AC=window.AudioContext||window.webkitAudioContext;
+    let ctx=null,src=null,mr=null,tick=null;const chunks=[];
+    const clean=()=>{clearInterval(tick);try{src&&src.disconnect()}catch(e){}try{ctx&&ctx.close()}catch(e){}};
+    try{
+      ctx=new AC();
+      if(ctx.state==='suspended'){try{await ctx.resume()}catch(e){}}
+      const dest=ctx.createMediaStreamDestination();
+      try{dest.channelCount=buf.numberOfChannels;dest.channelCountMode='explicit'}catch(e){}
+      const opt={audioBitsPerSecond:Math.max(1,kbps)*1000};if(mime)opt.mimeType=mime;
+      mr=new MediaRecorder(dest.stream,opt);
+      mr.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
+      const stopped=new Promise(r=>{mr.onstop=r});
+      mr.onerror=()=>{clean();rej(new Error('Codifica non riuscita'))};
+      src=ctx.createBufferSource();src.buffer=buf;src.connect(dest);
+      if(job)job.stop=()=>{try{src.stop()}catch(e){}try{mr.state!=='inactive'&&mr.stop()}catch(e){}};
+      const t0=performance.now();
+      tick=setInterval(()=>{onProg&&onProg(Math.min(1,(performance.now()-t0)/(buf.duration*1000)))},140);
+      mr.start(150);src.start();
+      await new Promise(r=>{src.onended=r});
+      await new Promise(r=>setTimeout(r,280));
+      try{mr.state!=='inactive'&&mr.stop()}catch(e){}
+      await stopped;clean();
+      if(job&&job.cancel){rej(new Error('cancel'));return}
+      const blob=new Blob(chunks,{type:(mr&&mr.mimeType)||mime||'audio/webm'});
+      if(!blob.size){rej(new Error('Nessun dato codificato'));return}
+      res(blob)
+    }catch(e){clean();rej(e)}})()})}
+async function runReencode(){
+  if(!reRec||reJob)return;
+  const btn=$('reGoBtn'),prog=$('reProg'),bar=$('reProgBar'),st=$('reStatus');
+  const f=reCap.format,rate=+reCap.rate,ch=+reCap.channels,bits=+reCap.bits,kbps=+reCap.bitrate;
+  reJob={cancel:false,stop:null};btn.disabled=true;btn.innerHTML='<span class="ms">hourglass</span>Attendi…';
+  prog.hidden=f==='wav';bar.style.width='0%';
+  try{
+    st.textContent='Lettura del master…';
+    const buf=await decodeMaster(reRec);
+    if(reJob.cancel)throw new Error('cancel');
+    st.textContent='Conversione a '+(rate/1000)+' kHz · '+(ch===1?'mono':'stereo')+'…';
+    const rendered=await renderBuffer(buf,rate,ch,!!reCap.normalize);
+    if(reJob.cancel)throw new Error('cancel');
+    let blob,ext=f;
+    if(f==='wav'){
+      blob=new Blob([encodeWAV(interleaveBuffer(rendered),rate,ch,bits)],{type:'audio/wav'})
+    }else{
+      const mime=getSupportedMimeType(f);
+      if(!mime)throw new Error('Il browser non supporta '+f.toUpperCase());
+      st.textContent='Codifica in tempo reale… (0%)';
+      blob=await encodeRealtime(rendered,mime,kbps,v=>{bar.style.width=(v*100).toFixed(1)+'%';
+        st.textContent=`Codifica in tempo reale… (${Math.round(v*100)}%)`},reJob);
+      ext=mime.includes('webm')?'webm':mime.includes('ogg')?'ogg':(mime.includes('mp4')||mime.includes('aac'))?'m4a':mime.includes('mpeg')?'mp3':f;
+      if(ext!==f)showToast(`Il browser non supporta ${f.toUpperCase()}: salvato in ${ext.toUpperCase()}`,'error')
+    }
+    if(reJob.cancel)throw new Error('cancel');
+    const name=`${reRec.name}_${String(rate/1000).replace('.','')}k${ch===1?'m':'s'}.${ext}`;
+    if(reRec.id)await addExport(reRec.id,blob,name,{format:f,rate,channels:ch,bits,bitrate:kbps}).catch(()=>{});
+    state.lastFileRecId=reRec.id||null;
+    showFileCard(blob,name,{dur:formatTime((reRec.durationMs||0)),
+      meta:`${ext.toUpperCase()} / ${rate} Hz / ${kbps} kbps`,src:`Ricodifica di ${reRec.name}`});
+    showToast('Ricodifica completata','success');
+    hap([15,25,15]);refreshLibrary()
+  }catch(e){
+    if(e&&e.message==='cancel')showToast('Ricodifica annullata')
+    else{console.warn(e);showToast('Ricodifica non riuscita: '+(e.message||e),'error')}
+  }finally{reJob=null;btn.disabled=false;btn.innerHTML='<span class="ms">bolt</span>Genera';
+    prog.hidden=true;bar.style.width='0%';if(!$('reencodeCard').classList.contains('open'))st.textContent=''}
+}
+
+/* ---------- Eventi libreria e ricodifica ---------- */
+$('reRate').innerHTML=RATES.map(r=>`<option value="${r}">${r/1000} kHz${r===16000?' — voce':r===44100?' — CD':r===48000?' — studio':r===8000?' — minimo':''}</option>`).join('');
+$('libraryBtn').addEventListener('click',()=>{refreshLibrary();showSheet('libraryCard')});
+$('libCloseBtn').addEventListener('click',()=>showSheet(null));
+$('libList').addEventListener('click',async e=>{
+  const btn=e.target.closest('[data-act]');if(!btn)return;
+  const card=btn.closest('.rec'),id=card&&card.dataset.id,rec=libCache.recs.find(r=>r.id===id);
+  const act=btn.dataset.act;
+  if(act==='toggle'){
+    if(!rec)return;
+    const open=!libOpen.has(id);
+    if(open)libOpen.add(id);else libOpen.delete(id);
+    card.classList.toggle('on',open);btn.setAttribute('aria-expanded',String(open));
+    const au=card.querySelector('audio');
+    if(open&&au&&!au.getAttribute('src'))au.src=urlFor(rec);
+    return}
+  if(!rec)return;
+  if(act==='master')downloadBlob(rec.master,rec.name+'.wav');
+  else if(act==='exp'){const o=libCache.outs.find(x=>x.id===btn.dataset.oid);if(o)downloadBlob(o.blob,o.name)}
+  else if(act==='del')await deleteRecording(rec);
+  else if(act==='re')openReencode(rec)});
+document.querySelectorAll('#reFormatGroup .fb').forEach(b=>b.addEventListener('click',()=>{reCap.format=b.dataset.rf;syncReUI()}));
+document.querySelectorAll('#rePresetGroup .fb').forEach(b=>b.addEventListener('click',()=>{
+  const p=PRESETS[b.dataset.rpreset];if(!p)return;
+  reCap.format=p.format;reCap.rate=p.sampleRate;reCap.bitrate=p.bitrate;reCap.channels=p.channels;reCap.bits=p.bitDepth;
+  syncReUI();hap(10)}));
+$('reRate').addEventListener('change',e=>{reCap.rate=+e.target.value;syncReUI()});
+$('reBitrate').addEventListener('input',e=>{reCap.bitrate=+e.target.value;syncReUI()});
+$('reBits').addEventListener('change',e=>{reCap.bits=+e.target.value;syncReUI()});
+document.querySelectorAll('input[name="reChannels"]').forEach(r=>r.addEventListener('change',e=>{reCap.channels=+e.target.value;syncReUI()}));
+$('reNormalize').addEventListener('change',e=>{reCap.normalize=e.target.checked;syncReUI()});
+$('reGoBtn').addEventListener('click',runReencode);
+$('reCancelBtn').addEventListener('click',()=>{
+  if(reJob){reJob.cancel=true;try{reJob.stop&&reJob.stop()}catch(e){}return}
+  refreshLibrary();showSheet('libraryCard')});
+$('outputReBtn').addEventListener('click',async()=>{
+  let rec=null;const rid=state.lastFileRecId||state.recId;
+  if(rid){try{rec=await dbGet('recs',rid)}catch(e){}}
+  if(!rec&&state.rawAudioBuffer.length){
+    const c=cfg();rec={id:null,name:state.recName||stampName(),durationMs:state.elapsedTime,cap:{...c},
+      master:createWavBlob(16),size:0}}
+  if(rec)openReencode(rec);else showToast('Registrazione non disponibile','error')});
+
+/* ---------- Avvio: ripristina impostazioni, poi init ---------- */
+(function restore(){
+  let d={};try{d=JSON.parse(localStorage.getItem(SKEY)||localStorage.getItem(SKEY_V2)||'{}')}catch(e){}
+  if(d.t==='light'||d.t==='dark')applyTheme(d.t,true);else themeSync();
+  if(d.f&&['wav','mp3','m4a','opus'].includes(d.f))state.recordingFormat=d.f;
+  if(d.sr&&RATES.includes(+d.sr))state.sampleRate=+d.sr;
+  if(d.bd&&[8,16,24,32].includes(+d.bd))state.bitDepth=+d.bd;
+  if(d.br)state.bitrate=+d.br;
+  if(d.ch===1||d.ch===2)state.channels=+d.ch;
+  if(typeof d.me==='boolean')state.micEnabled=d.me;
+  if(typeof d.de==='boolean')state.desktopEnabled=d.de;
+  if(typeof d.mg==='number')state.micGain=Math.max(0,Math.min(2,d.mg));
+  if(typeof d.dg==='number')state.desktopGain=Math.max(0,Math.min(2,d.dg));
+  if(d.ec==='boolean'){$('echoCancellation').checked=state.echoCancellation=d.ec}
+  if(typeof d.ns==='boolean'){$('noiseSuppression').checked=state.noiseSuppression=d.ns}
+  if(typeof d.agc==='boolean'){$('autoGainControl').checked=state.autoGainControl=d.agc}
+  if(d.v&&['bars','ring','wave'].includes(d.v))$('visualizerStyle').value=d.v;
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getDisplayMedia)state.desktopEnabled=false;
+  if(!state.micEnabled&&!state.desktopEnabled)state.micEnabled=true;
+  state.preset=(d.pr&&(d.pr==='custom'||PRESETS[d.pr]))?d.pr:detectPreset();
+  const dh=$('desktopHint');
+  if(dh)dh.textContent=(navigator.mediaDevices&&navigator.mediaDevices.getDisplayMedia)?desktopHintForOS():'Audio di sistema non supportato in questo browser: registra solo il microfono.';
+  syncUIFromState()})();
+bindRipples();resize();requestAnimationFrame(frame);refreshLibrary();
+addEventListener('load',getAudioDevices);
+</script>
+</body>
+</html>
